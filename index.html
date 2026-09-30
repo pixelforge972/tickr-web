@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0E0F10">
+<meta name="description" content="Minimalistyczny metronom — bez instalacji, działa offline.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>Metronom</title>
+<style>
+html,body{margin:0;background:#0E0F10}
+body{margin:0}
+a{color:#F5A524}a:hover{color:#FFC45E}
+/* ===== Tokens: dark (default) ===== */
+.tk{
+  --bg:#0E0F10; --surface:#17191B; --surface-2:#212427; --surface-3:#2C3034; --line:#33383D;
+  --text:#F3F2EE; --text-2:#B4B8BB; --text-3:#8A9094;
+  --accent:#F5A524; --accent-ink:#F5A524; --accent-ring:#F5A524; --on-accent:#1B1305;
+  --accent-soft:rgba(245,165,36,.16); --accent-line:rgba(245,165,36,.55);
+  --led-off:#1E2124; --led-ring:#646B70; --led-on:#F3F2EE; --halo:rgba(243,242,238,.14);
+  --flash:rgba(243,242,238,.045); --flash-accent:rgba(245,165,36,.11);
+  --scrim:rgba(0,0,0,.6); --focus:#F3F2EE;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px; --space-7:48px;
+  --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px; --r-full:999px;
+  --hit:48px; --step-h:56px; --action-h:88px;
+  --font:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-family:var(--font); color:var(--text); background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+/* ===== Tokens: light ===== */
+.tk.theme-light{
+  --bg:#F5F4F0; --surface:#FFFFFF; --surface-2:#EDEBE6; --surface-3:#E1DED7; --line:#D3D0C8;
+  --text:#141516; --text-2:#4A4F53; --text-3:#62676B;
+  --accent:#E8950F; --accent-ink:#8F5200; --accent-ring:#8F5200; --on-accent:#1B1305;
+  --accent-soft:rgba(232,149,15,.16); --accent-line:rgba(143,82,0,.5);
+  --led-off:#E6E3DC; --led-ring:#7F8488; --led-on:#141516; --halo:rgba(20,21,22,.10);
+  --flash:rgba(20,21,22,.04); --flash-accent:rgba(232,149,15,.14);
+  --scrim:rgba(20,21,22,.35); --focus:#141516;
+}
+.tk *{box-sizing:border-box}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ===== Layout: one fluid grid, breakpoints via container queries ===== */
+.mt{container:mt / size; position:relative; overflow:hidden; width:100%; height:100dvh}
+.mt-inner{height:100%; width:100%; margin:0 auto; padding:var(--space-4); display:grid; gap:var(--space-4);
+  grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto;
+  grid-template-areas:"top" "rhythm" "display" "tempo" "actions"}
+.top{grid-area:top; display:flex; align-items:center; justify-content:space-between; min-height:var(--hit)}
+.brand{font-size:15px; font-weight:600; letter-spacing:.02em; color:var(--text-2); padding-left:var(--space-1)}
+.rhythm{grid-area:rhythm; display:flex; flex-direction:column; gap:var(--space-2)}
+.tempo{grid-area:tempo; display:flex; flex-direction:column; gap:var(--space-2)}
+.actions{grid-area:actions; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.7fr); gap:var(--space-3)}
+.steps{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--space-2)}
+
+/* ===== Display ===== */
+.display{grid-area:display; position:relative; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(12px,3.5cqh,36px); border-radius:var(--r-xl); background-color:transparent; transition:background-color 200ms ease-out}
+.display.flash{background-color:var(--flash); transition-duration:0ms}
+.display.flash-accent{background-color:var(--flash-accent); transition-duration:0ms}
+.readout{display:flex; flex-direction:column; align-items:center; gap:4px}
+.bpm-unit{font-size:13px; font-weight:600; letter-spacing:.18em; color:var(--text-3)}
+.bpm{display:block; font-size:clamp(88px,min(36cqi,19cqh),240px); font-weight:600; line-height:.92; letter-spacing:-.035em;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; color:var(--text); transition:color 160ms}
+.is-tapping .bpm{color:var(--accent-ink)}
+.tempo-name{font-size:18px; font-weight:500; color:var(--text-2); letter-spacing:.01em}
+
+/* ===== Beat indicator ===== */
+.leds{--led:clamp(18px,7.2cqi,34px); display:flex; align-items:center; justify-content:center; gap:clamp(8px,3cqi,18px)}
+.beat{display:flex; flex-direction:column; align-items:center; gap:10px}
+.beat.group-start{margin-left:clamp(4px,2cqi,14px)}
+.led{display:block; width:var(--led); height:var(--led); border-radius:50%; background:var(--led-off);
+  box-shadow:inset 0 0 0 2px var(--led-ring); transition:background-color 140ms ease-out, box-shadow 220ms ease-out}
+.led-accent{width:calc(var(--led) * 1.3); height:calc(var(--led) * 1.3); box-shadow:inset 0 0 0 2.5px var(--accent-ring)}
+.led-sec{box-shadow:inset 0 0 0 2px var(--text-2)}
+.led.on{background:var(--led-on); box-shadow:inset 0 0 0 2px var(--led-on), 0 0 0 7px var(--halo); transition-duration:0ms}
+.led-accent.on{background:var(--accent); box-shadow:inset 0 0 0 2.5px var(--accent-ring), 0 0 0 9px var(--accent-soft), 0 0 28px 4px var(--accent-soft)}
+.pips{display:flex; gap:4px; height:6px}
+.pip{width:6px; height:6px; border-radius:50%; background:var(--led-ring); opacity:.55}
+.pip.on{background:var(--text); opacity:1}
+
+/* ===== Buttons ===== */
+.btn{-webkit-appearance:none; appearance:none; border:0; margin:0; padding:0; font:inherit; color:var(--text); background:var(--surface-2);
+  cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; transition:background-color 120ms, transform 90ms, filter 90ms}
+.btn:active,.btn.is-pressed{background:var(--surface-3); transform:scale(.97)}
+.btn:disabled,.btn.is-disabled{cursor:not-allowed; color:var(--text-3); background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); transform:none}
+.btn:focus-visible,.is-focus{outline:3px solid var(--focus); outline-offset:3px}
+.btn-step{min-height:var(--step-h); border-radius:var(--r-md); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums}
+.btn-primary{display:flex; align-items:center; justify-content:center; gap:12px; min-height:var(--action-h); border-radius:var(--r-xl);
+  background:var(--accent); color:var(--on-accent); font-size:22px; font-weight:700; letter-spacing:.01em}
+.btn-primary:active,.btn-primary.is-pressed{background:var(--accent); filter:brightness(.88); transform:scale(.98)}
+.btn-primary.is-active{background:var(--surface-2); color:var(--text); box-shadow:inset 0 0 0 2px var(--line)}
+.btn-primary.is-active svg{color:var(--accent-ink)}
+.btn-primary.is-active:active,.btn-primary.is-active.is-pressed{background:var(--surface-3); filter:none}
+.btn-tap{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:var(--action-h);
+  border-radius:var(--r-xl); box-shadow:inset 0 0 0 1px var(--line)}
+.tap-label{font-size:20px; font-weight:700}
+.tap-cap{font-size:12px; font-weight:500; color:var(--text-2)}
+.btn-tap.is-active{background:var(--accent-soft); box-shadow:inset 0 0 0 2px var(--accent-line); color:var(--accent-ink)}
+.btn-tap.is-active .tap-cap{color:var(--accent-ink)}
+.icon-btn{display:inline-flex; align-items:center; justify-content:center; width:var(--hit); height:var(--hit); border-radius:var(--r-full); background:transparent; color:var(--text-2)}
+.icon-btn:active,.icon-btn.is-pressed{background:var(--surface-2); color:var(--text)}
+
+/* ===== Segments ===== */
+.seg{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:4px; padding:4px; background:var(--surface);
+  border-radius:var(--r-md); box-shadow:inset 0 0 0 1px var(--line)}
+.seg-btn{min-height:var(--hit); border-radius:var(--r-sm); background:transparent; color:var(--text-2); font-size:16px; font-weight:600; font-variant-numeric:tabular-nums}
+.seg-btn:active,.seg-btn.is-pressed{background:var(--surface-2); transform:none}
+.seg-btn[aria-pressed="true"],.seg-btn.is-selected{background:var(--accent-soft); color:var(--accent-ink); box-shadow:inset 0 0 0 1.5px var(--accent-line)}
+.seg-btn:disabled{background:transparent; box-shadow:none; opacity:.5}
+.seg-sub .seg-btn{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-height:56px}
+.sub-pips{display:flex; gap:4px}
+.sub-pip{width:6px; height:6px; border-radius:50%; background:currentColor}
+.sub-label{font-size:13px; font-weight:600}
+
+/* ===== Slider ===== */
+.range{-webkit-appearance:none; appearance:none; display:block; width:100%; height:var(--hit); margin:0; background:transparent; cursor:pointer; --fill:50%}
+.range::-webkit-slider-runnable-track{height:6px; border-radius:3px; background:linear-gradient(to right, var(--accent) 0 var(--fill), var(--line) var(--fill) 100%)}
+.range::-moz-range-track{height:6px; border-radius:3px; background:var(--line)}
+.range::-moz-range-progress{height:6px; border-radius:3px; background:var(--accent)}
+.range::-webkit-slider-thumb{-webkit-appearance:none; width:28px; height:28px; margin-top:-11px; border-radius:50%; background:var(--text); box-shadow:0 0 0 4px var(--thumb-gap, var(--bg))}
+.range::-moz-range-thumb{width:28px; height:28px; border:0; border-radius:50%; background:var(--text); box-shadow:0 0 0 4px var(--thumb-gap, var(--bg))}
+.range:focus-visible,.range.is-focus{outline:none}
+.range:focus-visible::-webkit-slider-thumb,.range.is-focus::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--thumb-gap, var(--bg)), 0 0 0 7px var(--focus)}
+.range:disabled{cursor:not-allowed; opacity:.45}
+
+/* ===== Switch ===== */
+.switch-row{display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; min-height:64px; padding:10px 14px 10px 16px;
+  border-radius:var(--r-md); text-align:left}
+.switch-row:active,.switch-row.is-pressed{transform:none}
+.switch-row:disabled,.switch-row.is-disabled{background:var(--surface-2); box-shadow:none; color:var(--text)}
+.sw-text{display:flex; flex-direction:column; gap:3px; min-width:0}
+.sw-title{font-size:16px; font-weight:600}
+.sw-cap{font-size:13px; line-height:1.35; color:var(--text-2); display:flex; gap:6px; align-items:flex-start}
+.sw-cap svg{flex:none; margin-top:1px}
+.switch{flex:none; position:relative; width:52px; height:32px; border-radius:16px; background:var(--surface); box-shadow:inset 0 0 0 2px var(--led-ring); transition:background-color 160ms}
+.knob{position:absolute; top:4px; left:4px; width:24px; height:24px; border-radius:50%; background:var(--text-2); transition:transform 160ms, background-color 160ms}
+.switch-row[aria-checked="true"] .switch{background:var(--accent); box-shadow:none}
+.switch-row[aria-checked="true"] .knob{transform:translateX(20px); background:var(--on-accent)}
+.switch-row:disabled .switch,.switch-row.is-disabled .switch{opacity:.4}
+.switch-row:disabled .sw-title,.switch-row.is-disabled .sw-title{color:var(--text-2)}
+
+/* ===== Mute hint ===== */
+.hint{position:absolute; top:0; left:0; right:0; margin:0 auto; width:max-content; max-width:100%; z-index:2; display:flex; align-items:center; gap:10px;
+  padding:0 0 0 14px; min-height:var(--hit); background:var(--surface-2); color:var(--text); border-radius:var(--r-lg); box-shadow:inset 0 0 0 1px var(--line); font-size:14px; line-height:1.3}
+.hint > svg{flex:none; color:var(--accent-ink)}
+.hint .icon-btn{flex:none}
+.hint[hidden]{display:none}
+
+/* ===== Settings sheet ===== */
+.scrim{position:absolute; inset:0; z-index:10; border:0; padding:0; margin:0; background:var(--scrim); opacity:0; visibility:hidden; transition:opacity 200ms, visibility 0s 200ms; cursor:pointer}
+.sheet{position:absolute; z-index:11; left:0; right:0; bottom:0; max-height:88%; overflow:auto; display:flex; flex-direction:column; gap:var(--space-3);
+  padding:var(--space-2) var(--space-4) var(--space-5); background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0; box-shadow:0 -1px 0 var(--line);
+  transform:translateY(100%); visibility:hidden; transition:transform 260ms cubic-bezier(.2,.8,.2,1), visibility 0s 260ms; --thumb-gap:var(--surface)}
+.sheet-open .scrim{opacity:1; visibility:visible; transition:opacity 200ms}
+.sheet-open .sheet{transform:none; visibility:visible; transition:transform 260ms cubic-bezier(.2,.8,.2,1)}
+.sheet-grip{align-self:center; width:40px; height:5px; border-radius:3px; background:var(--line); margin:4px 0}
+.sheet-head{display:flex; align-items:center; justify-content:space-between; padding-left:var(--space-1)}
+.sheet-title{margin:0; font-size:20px; font-weight:650}
+.field{display:flex; flex-direction:column; gap:4px; padding:12px 16px 4px; background:var(--surface-2); border-radius:var(--r-md); --thumb-gap:var(--surface-2)}
+.field.pad{padding-bottom:12px; gap:10px}
+.field-row{display:flex; justify-content:space-between; align-items:baseline}
+.field-label{font-size:16px; font-weight:600; color:var(--text)}
+.val{font-size:15px; font-weight:600; color:var(--text-2); font-variant-numeric:tabular-nums}
+.sheet-version{margin:8px 0 0; text-align:center; font-size:12px; color:var(--text-3)}
+
+/* ===== Landscape (phone) ===== */
+@container mt (orientation: landscape){
+  .mt-inner{--step-h:48px; --action-h:64px; padding:var(--space-4) var(--space-5); column-gap:var(--space-5); row-gap:var(--space-3);
+    grid-template-columns:minmax(0,1.1fr) minmax(300px,1fr); grid-template-rows:auto auto auto minmax(0,1fr);
+    grid-template-areas:"top rhythm" "display rhythm" "display tempo" "display actions"}
+  .actions{align-self:end}
+  .seg-sub .seg-btn{min-height:var(--hit)}
+  .sub-label{display:none}
+  .display{gap:clamp(8px,3cqh,24px)}
+  .bpm{font-size:clamp(72px,min(17cqi,30cqh),240px)}
+  .leds{--led:clamp(18px,3.6cqi,40px)}
+  .sheet{left:auto; top:0; width:min(400px,52%); max-height:none; border-radius:var(--r-xl) 0 0 var(--r-xl); box-shadow:-1px 0 0 var(--line); transform:translateX(100%); padding-top:var(--space-4)}
+  .sheet-grip{display:none}
+}
+/* ===== Desktop / tablet (landscape, tall) ===== */
+@container mt (orientation: landscape) and (min-height: 600px){
+  .mt-inner{--step-h:56px; --action-h:88px; max-width:1180px; padding:var(--space-6) var(--space-7); column-gap:64px; row-gap:var(--space-4);
+    grid-template-columns:minmax(0,1fr) minmax(360px,440px); grid-template-rows:auto minmax(0,1fr) auto minmax(0,1fr);
+    grid-template-areas:"top top" "display rhythm" "display tempo" "display actions"}
+  .rhythm{align-self:end}
+  .actions{align-self:start}
+  .seg-sub .seg-btn{min-height:56px}
+  .sub-label{display:block}
+  .bpm{font-size:clamp(72px,min(19cqi,30cqh),240px)}
+}
+/* ===== Reduced motion: no flash or glow, fill change only ===== */
+.rm .led,.rm .display,.rm .knob,.rm .switch,.rm .sheet,.rm .scrim,.rm .btn,.rm .bpm{transition:none !important}
+.rm .led.on{box-shadow:inset 0 0 0 2px var(--led-on)}
+.rm .led-accent.on{box-shadow:inset 0 0 0 2.5px var(--accent-ring)}
+.rm .display.flash,.rm .display.flash-accent{background-color:transparent}
+.rm .btn:active,.rm .btn.is-pressed{transform:none}
+@media (prefers-reduced-motion: reduce){
+.mt .led,.mt .display,.mt .knob,.mt .switch,.mt .sheet,.mt .scrim,.mt .btn,.mt .bpm{transition:none !important}
+.mt .led.on{box-shadow:inset 0 0 0 2px var(--led-on)}
+.mt .led-accent.on{box-shadow:inset 0 0 0 2.5px var(--accent-ring)}
+.mt .display.flash,.mt .display.flash-accent{background-color:transparent}
+.mt .btn:active,.mt .btn.is-pressed{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="tk mt theme-dark" id="app">
+<div class="mt-inner">
+<header class="top">
+<span class="brand" data-i18n="brand">Metronom</span>
+<button class="btn icon-btn" type="button" id="btn-settings" data-i18n-aria="settingsLabel" aria-label="Ustawienia" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="10" cy="17" r="2.5"></circle></svg></button>
+</header>
+<section class="rhythm" aria-label="Rytm">
+<div class="seg seg-meter" id="seg-meter" role="group" data-i18n-aria="meterLabel" aria-label="Metrum"></div>
+<div class="seg seg-sub" id="seg-sub" role="group" data-i18n-aria="subdivLabel" aria-label="Podział"></div>
+</section>
+<section class="display" id="display" aria-label="Tempo i beat">
+<div class="hint" id="hint" role="status" hidden>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
+<span data-i18n="muteHintText">Nie słychać? Sprawdź, czy iPhone nie jest wyciszony.</span>
+<button class="btn icon-btn" type="button" id="btn-close-hint" data-i18n-aria="closeHint" aria-label="Zamknij wskazówkę"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div class="leds" id="leds" aria-hidden="true"></div>
+<div class="readout">
+<span class="bpm-unit" data-i18n="bpmUnit">BPM</span>
+<output class="bpm" id="bpm-readout" for="bpm-main">120</output>
+<span class="tempo-name" id="tempo-name">Moderato</span>
+</div>
+</section>
+<section class="tempo" aria-label="Zmiana tempa">
+<label class="sr-only" for="bpm-main" data-i18n="bpmSliderLabel">Tempo w BPM</label>
+<input id="bpm-main" class="range" type="range" min="30" max="240" step="1" value="120">
+<div class="steps">
+<button class="btn btn-step" type="button" id="btn-minus5" data-i18n-aria="stepMinus5" aria-label="Wolniej o 5">−5</button>
+<button class="btn btn-step" type="button" id="btn-minus1" data-i18n-aria="stepMinus1" aria-label="Wolniej o 1">−1</button>
+<button class="btn btn-step" type="button" id="btn-plus1" data-i18n-aria="stepPlus1" aria-label="Szybciej o 1">+1</button>
+<button class="btn btn-step" type="button" id="btn-plus5" data-i18n-aria="stepPlus5" aria-label="Szybciej o 5">+5</button>
+</div>
+</section>
+<section class="actions">
+<button class="btn btn-tap" type="button" id="btn-tap">
+<span class="tap-label" data-i18n="tapLabel">Tap</span>
+<span class="tap-cap" id="tap-cap" data-i18n="tapCaptionIdle">wystukaj tempo</span>
+</button>
+<button class="btn btn-primary" type="button" id="btn-toggle" aria-pressed="false">
+<svg id="icon-play" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"></path></svg>
+<svg id="icon-stop" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" hidden><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"></rect></svg>
+<span id="toggle-label" data-i18n="start">Start</span>
+</button>
+</section>
+</div>
+<button class="scrim" type="button" id="btn-scrim" data-i18n-aria="closeSettings" aria-label="Zamknij ustawienia"></button>
+<aside class="sheet" id="sheet" aria-label="Ustawienia" aria-hidden="true">
+<div class="sheet-grip" aria-hidden="true"></div>
+<div class="sheet-head">
+<h2 class="sheet-title" data-i18n="settingsTitle">Ustawienia</h2>
+<button class="btn icon-btn" type="button" id="btn-close-settings" data-i18n-aria="closeSettings" aria-label="Zamknij ustawienia"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div class="field">
+<div class="field-row"><label class="field-label" for="vol-main" data-i18n="volumeLabel">Głośność</label><span class="val" id="vol-val">80%</span></div>
+<input id="vol-main" class="range" type="range" min="0" max="100" step="1" value="80">
+</div>
+<div class="field pad">
+<span class="field-label" id="snd-main" data-i18n="soundLabel">Brzmienie</span>
+<div class="seg" id="seg-sound" role="group" aria-labelledby="snd-main"></div>
+</div>
+<div class="field">
+<div class="field-row"><label class="field-label" for="acc-main" data-i18n="accentVolumeLabel">Głośność akcentu</label><span class="val" id="acc-val">+40%</span></div>
+<input id="acc-main" class="range" type="range" min="0" max="100" step="5" value="40">
+</div>
+<button class="btn switch-row" type="button" id="row-vibe" role="switch" aria-checked="false">
+<span class="sw-text"><span class="sw-title" data-i18n="vibrationLabel">Wibracje na beat</span>
+<span class="sw-cap" id="vibe-cap-ios" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg><span data-i18n="vibrationUnavailableIOS">Niedostępne na iPhonie: Safari nie obsługuje wibracji z poziomu strony.</span></span>
+<span class="sw-cap" id="vibe-cap-default" data-i18n="vibrationCaption">Krótki impuls na każdą miarę, mocniejszy na „raz”</span>
+</span>
+<span class="switch" aria-hidden="true"><span class="knob"></span></span>
+</button>
+<button class="btn switch-row" type="button" id="row-wake" role="switch" aria-checked="true">
+<span class="sw-text"><span class="sw-title" data-i18n="wakeLockLabel">Ekran zawsze włączony</span><span class="sw-cap" data-i18n="wakeLockCaption">Ekran nie zgaśnie, dopóki metronom gra</span></span>
+<span class="switch" aria-hidden="true"><span class="knob"></span></span>
+</button>
+<div class="field pad">
+<span class="field-label" id="thm-main" data-i18n="themeLabel">Wygląd</span>
+<div class="seg" id="seg-theme" role="group" aria-labelledby="thm-main"></div>
+</div>
+<p class="sheet-version">Metronom 0.1.0</p>
+</aside>
+<div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
+</div>
+<script>
+"use strict";
+
+/* ===== i18n ===== */
+var I18N = {
+  pl: {
+    brand: "Metronom", settingsLabel: "Ustawienia", meterLabel: "Metrum", subdivLabel: "Podział",
+    bpmUnit: "BPM", bpmSliderLabel: "Tempo w BPM", start: "Start", stop: "Stop", tapLabel: "Tap",
+    tapCaptionIdle: "wystukaj tempo", settingsTitle: "Ustawienia", volumeLabel: "Głośność",
+    soundLabel: "Brzmienie", accentVolumeLabel: "Głośność akcentu", vibrationLabel: "Wibracje na beat",
+    vibrationCaption: "Krótki impuls na każdą miarę, mocniejszy na „raz”",
+    vibrationUnavailableIOS: "Niedostępne na iPhonie: Safari nie obsługuje wibracji z poziomu strony.",
+    wakeLockLabel: "Ekran zawsze włączony", wakeLockCaption: "Ekran nie zgaśnie, dopóki metronom gra",
+    muteHintText: "Nie słychać? Sprawdź, czy iPhone nie jest wyciszony.", closeHint: "Zamknij wskazówkę",
+    closeSettings: "Zamknij ustawienia", stepMinus5: "Wolniej o 5", stepMinus1: "Wolniej o 1",
+    stepPlus1: "Szybciej o 1", stepPlus5: "Szybciej o 5", themeLabel: "Wygląd",
+    soundNames: { click: "Klik", wood: "Drewno", hat: "Hi-hat" },
+    themeNames: { auto: "Systemowy", light: "Jasny", dark: "Ciemny" },
+    subdivNames: { "1": "Brak", "2": "Ósemki", "3": "Triole", "4": "Szesnastki" },
+    tapSubtitleFirst: "Tap tempo · stuknij jeszcze raz", tapSubtitleMore: "Tap tempo · stukaj dalej",
+    tapCountPlural: function (n) {
+      if (n === 1) return "1 uderzenie";
+      var d = n % 10, t = n % 100;
+      if (d >= 2 && d <= 4 && (t < 12 || t > 14)) return n + " uderzenia";
+      return n + " uderzeń";
+    },
+    playingAnnouncement: function (bpm) { return "Metronom uruchomiony, " + bpm + " BPM"; },
+    stoppedAnnouncement: "Metronom zatrzymany"
+  },
+  en: {
+    brand: "Metronome", settingsLabel: "Settings", meterLabel: "Meter", subdivLabel: "Subdivision",
+    bpmUnit: "BPM", bpmSliderLabel: "Tempo in BPM", start: "Start", stop: "Stop", tapLabel: "Tap",
+    tapCaptionIdle: "tap tempo", settingsTitle: "Settings", volumeLabel: "Volume",
+    soundLabel: "Sound", accentVolumeLabel: "Accent volume", vibrationLabel: "Vibrate on beat",
+    vibrationCaption: "A short pulse on every beat, stronger on beat one",
+    vibrationUnavailableIOS: "Unavailable on iPhone: Safari doesn't support vibration from the web.",
+    wakeLockLabel: "Keep screen on", wakeLockCaption: "The screen won't turn off while the metronome is running",
+    muteHintText: "Can't hear it? Check if your iPhone's ringer switch is muted.", closeHint: "Dismiss hint",
+    closeSettings: "Close settings", stepMinus5: "5 slower", stepMinus1: "1 slower",
+    stepPlus1: "1 faster", stepPlus5: "5 faster", themeLabel: "Appearance",
+    soundNames: { click: "Click", wood: "Wood", hat: "Hi-hat" },
+    themeNames: { auto: "System", light: "Light", dark: "Dark" },
+    subdivNames: { "1": "None", "2": "Eighths", "3": "Triplets", "4": "Sixteenths" },
+    tapSubtitleFirst: "Tap tempo · tap again", tapSubtitleMore: "Tap tempo · keep tapping",
+    tapCountPlural: function (n) { return n === 1 ? "1 tap" : n + " taps"; },
+    playingAnnouncement: function (bpm) { return "Metronome started, " + bpm + " BPM"; },
+    stoppedAnnouncement: "Metronome stopped"
+  }
+};
+var LOCALE = (navigator.language || "pl").toLowerCase().indexOf("pl") === 0 ? "pl" : "en";
+var T = I18N[LOCALE];
+document.documentElement.lang = LOCALE;
+
+/* ===== Music configuration ===== */
+var METERS = [
+  { id: "2/4", n: 2, g: [] }, { id: "3/4", n: 3, g: [] }, { id: "4/4", n: 4, g: [] },
+  { id: "5/4", n: 5, g: [3] }, { id: "6/8", n: 6, g: [3] }, { id: "7/8", n: 7, g: [2, 4] }
+];
+var SUBDIVS = [{ id: "1", n: 1 }, { id: "2", n: 2 }, { id: "3", n: 3 }, { id: "4", n: 4 }];
+var SOUNDS = ["click", "wood", "hat"];
+
+function meterById(id) { for (var i = 0; i < METERS.length; i++) if (METERS[i].id === id) return METERS[i]; return METERS[2]; }
+function subdivById(id) { for (var i = 0; i < SUBDIVS.length; i++) if (SUBDIVS[i].id === id) return SUBDIVS[i]; return SUBDIVS[0]; }
+
+function tempoName(bpm) {
+  if (bpm < 40) return "Grave"; if (bpm < 60) return "Largo"; if (bpm < 66) return "Larghetto";
+  if (bpm < 76) return "Adagio"; if (bpm < 108) return "Andante"; if (bpm < 120) return "Moderato";
+  if (bpm < 168) return "Allegro"; if (bpm < 200) return "Presto"; return "Prestissimo";
+}
+function clampBpm(x) { x = Math.round(Number(x)); if (isNaN(x)) x = 120; return Math.max(30, Math.min(240, x)); }
+
+var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+/* ===== State ===== */
+var STORAGE_KEY = "metronome-settings";
+var state = {
+  bpm: 120, meterId: "4/4", subdivId: "1", volume: 80, accentVolume: 40, sound: "click",
+  vibrationEnabled: false, wakeLockEnabled: true, theme: null, locale: LOCALE,
+  isPlaying: false, settingsOpen: false, hintDismissed: false
+};
+(function loadSettings() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    var saved = JSON.parse(raw);
+    ["bpm", "meterId", "subdivId", "volume", "accentVolume", "sound", "vibrationEnabled", "wakeLockEnabled", "theme", "locale"]
+      .forEach(function (k) { if (saved[k] !== undefined) state[k] = saved[k]; });
+    state.bpm = clampBpm(state.bpm);
+  } catch (e) {}
+})();
+
+var saveTimer = null;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function () {
+    try {
+      var toSave = {};
+      ["bpm", "meterId", "subdivId", "volume", "accentVolume", "sound", "vibrationEnabled", "wakeLockEnabled", "theme", "locale"]
+        .forEach(function (k) { toSave[k] = state[k]; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch (e) {}
+  }, 300);
+}
+
+/* ===== Theme and reduced motion ===== */
+var app = document.getElementById("app");
+var mqLight = window.matchMedia("(prefers-color-scheme: light)");
+var mqReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+function applyTheme() {
+  var light = state.theme === "light" || (state.theme === null && mqLight.matches);
+  app.classList.toggle("theme-light", !!light);
+}
+function applyReducedMotion() { app.classList.toggle("rm", mqReduced.matches); }
+mqLight.addEventListener("change", applyTheme);
+mqReduced.addEventListener("change", applyReducedMotion);
+
+/* ===== Audio engine and scheduler (lookahead on AudioContext.currentTime) ===== */
+var LOOKAHEAD_INTERVAL_MS = 25;
+var SCHEDULE_AHEAD_S = 0.1;
+var audioCtx = null;
+var nextNoteTime = 0, currentBeat = 0, currentSub = 0, noteIndex = 0;
+var schedulerTimerId = null, pendingMeterReset = false;
+var visualQueue = [];
+var taps = [];
+var tapResetTimer = null;
+
+function scheduleAheadTime() { return document.hidden ? 1.0 : SCHEDULE_AHEAD_S; }
+
+function ensureAudio() {
+  if (!audioCtx) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
+  }
+  if (audioCtx && audioCtx.state === "suspended") { try { audioCtx.resume(); } catch (e) {} }
+}
+
+/* A metronome's clicks are brief and mostly silence, so browsers don't reliably
+   flag the tab as "playing audio" the way continuous media does — and a tab not
+   flagged that way gets its timers throttled hard once it's backgrounded or
+   occluded by another window, which stalls the scheduler entirely. A steady,
+   effectively inaudible tone keeps the tab flagged as active audio so the
+   browser doesn't do that. */
+var keepAliveOsc = null, keepAliveGain = null;
+function startKeepAlive() {
+  if (!audioCtx || keepAliveOsc) return;
+  try {
+    keepAliveOsc = audioCtx.createOscillator();
+    keepAliveGain = audioCtx.createGain();
+    keepAliveOsc.frequency.value = 20;
+    keepAliveGain.gain.value = 0.0001;
+    keepAliveOsc.connect(keepAliveGain);
+    keepAliveGain.connect(audioCtx.destination);
+    keepAliveOsc.start();
+  } catch (e) {}
+}
+function stopKeepAlive() {
+  if (!keepAliveOsc) return;
+  try { keepAliveOsc.stop(); } catch (e) {}
+  try { keepAliveOsc.disconnect(); keepAliveGain.disconnect(); } catch (e) {}
+  keepAliveOsc = null; keepAliveGain = null;
+}
+
+function setMediaSessionState(playing) {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    if (!navigator.mediaSession.metadata) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: T.brand });
+    }
+    navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+  } catch (e) {}
+}
+
+/* Nodes already committed to the Web Audio graph keep playing on their own
+   timeline even after stop() — stopScheduler() only prevents new ones from
+   being scheduled. Track live nodes so Stop can silence anything still queued. */
+var scheduledNodes = [];
+function trackNode(node, endTime) {
+  var now = audioCtx.currentTime;
+  scheduledNodes = scheduledNodes.filter(function (e) { return e.endTime > now; });
+  scheduledNodes.push({ node: node, endTime: endTime });
+}
+function stopAllScheduledNodes() {
+  scheduledNodes.forEach(function (e) { try { e.node.stop(); } catch (err) {} });
+  scheduledNodes = [];
+}
+
+function playSound(kind, time) {
+  if (!audioCtx) return;
+  try {
+    var vol = state.volume / 100;
+    var mult = kind === "accent" ? Math.min(1 + state.accentVolume / 100, 2) * 0.7
+      : kind === "sub" ? 0.3 : kind === "sec" ? 0.6 : 0.5;
+    var g = vol * mult;
+    var gain = audioCtx.createGain();
+    gain.connect(audioCtx.destination);
+    if (state.sound === "hat") {
+      var len = Math.floor(audioCtx.sampleRate * 0.05);
+      var buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+      var d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      var src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      var hp = audioCtx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = kind === "accent" ? 5000 : 7500;
+      src.connect(hp); hp.connect(gain);
+      gain.gain.setValueAtTime(g, time);
+      src.start(time);
+      trackNode(src, time + 0.05 + 0.05);
+    } else {
+      var wood = state.sound === "wood";
+      var osc = audioCtx.createOscillator();
+      osc.type = wood ? "sine" : "square";
+      osc.frequency.value = wood
+        ? (kind === "accent" ? 1250 : kind === "sub" ? 650 : 880)
+        : (kind === "accent" ? 2000 : kind === "sub" ? 1000 : 1400);
+      var dur = wood ? 0.07 : 0.03;
+      osc.connect(gain);
+      gain.gain.setValueAtTime(g * (wood ? 1 : 0.3), time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      osc.start(time); osc.stop(time + dur + 0.02);
+      trackNode(osc, time + dur + 0.02);
+    }
+  } catch (e) {}
+}
+
+function beatKind(beat, sub) {
+  if (sub !== 0) return "sub";
+  var m = meterById(state.meterId);
+  if (beat === 0) return "accent";
+  if (m.g.indexOf(beat) >= 0) return "sec";
+  return "beat";
+}
+
+function scheduleNote(beat, sub, time) {
+  playSound(beatKind(beat, sub), time);
+  visualQueue.push({ time: time, beat: beat, sub: sub });
+}
+
+function advance() {
+  var m = meterById(state.meterId);
+  var subN = subdivById(state.subdivId).n;
+  noteIndex++;
+  currentSub++;
+  if (currentSub >= subN) {
+    currentSub = 0;
+    if (pendingMeterReset) {
+      currentBeat = 0; noteIndex = 0; pendingMeterReset = false;
+    } else {
+      currentBeat = (currentBeat + 1) % m.n;
+    }
+  }
+  nextNoteTime += 60 / state.bpm / subN;
+}
+
+function schedulerTick() {
+  var now = audioCtx.currentTime;
+  /* If this tick itself fired late (background tab timer throttling), nextNoteTime
+     can already be behind "now". Scheduling a note at a past time doesn't get dropped —
+     Web Audio clamps it to fire immediately, which bunches up missed notes into one
+     burst instead of spacing them out. Silently fast-forward through anything already
+     in the past before scheduling anything new. */
+  while (nextNoteTime < now) advance();
+  while (nextNoteTime < now + scheduleAheadTime()) {
+    scheduleNote(currentBeat, currentSub, nextNoteTime);
+    advance();
+  }
+  schedulerTimerId = setTimeout(schedulerTick, LOOKAHEAD_INTERVAL_MS);
+}
+
+function startScheduler() {
+  clearTimeout(schedulerTimerId);
+  nextNoteTime = audioCtx.currentTime + 0.05;
+  currentBeat = 0; currentSub = 0; noteIndex = 0; pendingMeterReset = false;
+  visualQueue = [];
+  schedulerTick();
+}
+function stopScheduler() { clearTimeout(schedulerTimerId); schedulerTimerId = null; visualQueue = []; }
+
+/* ===== Vibration ===== */
+var CAN_VIBRATE = "vibrate" in navigator;
+function vibrateFor(beat) {
+  if (IS_IOS || !state.vibrationEnabled || !CAN_VIBRATE) return;
+  try { navigator.vibrate(beat === 0 ? 30 : 12); } catch (e) {}
+}
+
+/* ===== Wake Lock ===== */
+var wakeLock = null;
+function requestWakeLock() {
+  if (!state.wakeLockEnabled || !("wakeLock" in navigator) || wakeLock) return;
+  try {
+    navigator.wakeLock.request("screen").then(function (l) {
+      wakeLock = l;
+      wakeLock.addEventListener("release", function () { wakeLock = null; });
+    }).catch(function () {});
+  } catch (e) {}
+}
+function releaseWakeLock() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden && state.isPlaying) requestWakeLock();
+});
+
+/* ===== Visuals: LED cache + rAF loop ===== */
+var ledEls = [], pipEls = [], currentLit = -1, flashTimer = null;
+function buildLeds() {
+  var m = meterById(state.meterId);
+  var subN = subdivById(state.subdivId).n;
+  var leds = document.getElementById("leds");
+  leds.innerHTML = "";
+  ledEls = []; pipEls = [];
+  for (var b = 0; b < m.n; b++) {
+    var isGroupStart = m.g.indexOf(b) >= 0;
+    var cell = document.createElement("div");
+    cell.className = "beat" + (isGroupStart ? " group-start" : "");
+    var led = document.createElement("span");
+    led.className = "led" + (b === 0 ? " led-accent" : "") + (isGroupStart ? " led-sec" : "");
+    cell.appendChild(led);
+    var pipsWrap = document.createElement("span");
+    pipsWrap.className = "pips";
+    var rowPips = [];
+    if (subN > 1) {
+      for (var k = 0; k < subN; k++) {
+        var pip = document.createElement("span");
+        pip.className = "pip";
+        pipsWrap.appendChild(pip);
+        rowPips.push(pip);
+      }
+    }
+    cell.appendChild(pipsWrap);
+    leds.appendChild(cell);
+    ledEls.push(led);
+    pipEls.push(rowPips);
+  }
+  currentLit = -1;
+}
+
+var displayEl = document.getElementById("display");
+function lightBeat(beat, sub) {
+  if (sub === 0) {
+    if (currentLit >= 0 && ledEls[currentLit]) ledEls[currentLit].classList.remove("on");
+    currentLit = beat;
+    if (ledEls[beat]) ledEls[beat].classList.add("on");
+    var isAccentBeat = beat === 0;
+    displayEl.classList.add(isAccentBeat ? "flash-accent" : "flash");
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { displayEl.classList.remove("flash", "flash-accent"); }, 110);
+    vibrateFor(beat);
+  }
+  if (pipEls[beat]) {
+    pipEls[beat].forEach(function (p, i) { p.classList.toggle("on", i === sub); });
+  }
+}
+
+function drawLoop() {
+  if (audioCtx) {
+    var now = audioCtx.currentTime;
+    while (visualQueue.length && visualQueue[0].time <= now) {
+      var entry = visualQueue.shift();
+      lightBeat(entry.beat, entry.sub);
+    }
+  }
+  requestAnimationFrame(drawLoop);
+}
+requestAnimationFrame(drawLoop);
+
+/* ===== Start/stop ===== */
+var announcer = document.getElementById("announcer");
+function start() {
+  ensureAudio();
+  if (!audioCtx) return;
+  requestWakeLock();
+  startKeepAlive();
+  setMediaSessionState(true);
+  state.isPlaying = true;
+  startScheduler();
+  announcer.textContent = T.playingAnnouncement(state.bpm);
+  render();
+}
+function stop() {
+  stopScheduler();
+  stopAllScheduledNodes();
+  stopKeepAlive();
+  setMediaSessionState(false);
+  releaseWakeLock();
+  clearTimeout(flashTimer);
+  displayEl.classList.remove("flash", "flash-accent");
+  if (currentLit >= 0 && ledEls[currentLit]) ledEls[currentLit].classList.remove("on");
+  currentLit = -1;
+  state.isPlaying = false;
+  announcer.textContent = T.stoppedAnnouncement;
+  render();
+}
+function toggle() { if (state.isPlaying) stop(); else start(); }
+
+/* ===== Tap tempo ===== */
+function tap() {
+  var now = Date.now();
+  var last = taps[taps.length - 1];
+  if (last && now - last > 2000) taps = [];
+  taps.push(now);
+  if (taps.length > 6) taps.shift();
+  if (taps.length >= 2) {
+    var avg = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
+    state.bpm = clampBpm(60000 / avg);
+    scheduleSave();
+  }
+  state.tapping = true;
+  state.tapCount = taps.length;
+  clearTimeout(tapResetTimer);
+  tapResetTimer = setTimeout(function () { taps = []; state.tapping = false; state.tapCount = 0; render(); }, 2000);
+  render();
+}
+
+/* ===== Changing meter/subdivision/BPM while playing ===== */
+function setBpm(v) {
+  state.bpm = clampBpm(v);
+  scheduleSave();
+  render();
+}
+function setMeter(id) {
+  state.meterId = id;
+  if (state.isPlaying) pendingMeterReset = true;
+  buildLeds();
+  scheduleSave();
+  render();
+}
+function setSubdiv(id) {
+  state.subdivId = id;
+  if (state.isPlaying) pendingMeterReset = true;
+  buildLeds();
+  scheduleSave();
+  render();
+}
+
+/* ===== Settings sheet ===== */
+function openSettings() { state.settingsOpen = true; render(); }
+function closeSettings() { state.settingsOpen = false; render(); }
+
+/* ===== Building static segments (meter, subdivision, sound) ===== */
+var segMeter = document.getElementById("seg-meter");
+METERS.forEach(function (m) {
+  var btn = document.createElement("button");
+  btn.className = "btn seg-btn";
+  btn.type = "button";
+  btn.setAttribute("aria-pressed", "false");
+  btn.textContent = m.id;
+  btn.addEventListener("click", function () { setMeter(m.id); });
+  segMeter.appendChild(btn);
+});
+
+var segSub = document.getElementById("seg-sub");
+SUBDIVS.forEach(function (s) {
+  var btn = document.createElement("button");
+  btn.className = "btn seg-btn";
+  btn.type = "button";
+  btn.setAttribute("aria-pressed", "false");
+  var pips = document.createElement("span");
+  pips.className = "sub-pips";
+  pips.setAttribute("aria-hidden", "true");
+  for (var k = 0; k < s.n; k++) {
+    var p = document.createElement("span");
+    p.className = "sub-pip";
+    pips.appendChild(p);
+  }
+  var label = document.createElement("span");
+  label.className = "sub-label";
+  label.textContent = T.subdivNames[s.id];
+  btn.setAttribute("aria-label", T.subdivNames[s.id]);
+  btn.appendChild(pips);
+  btn.appendChild(label);
+  btn.addEventListener("click", function () { setSubdiv(s.id); });
+  segSub.appendChild(btn);
+});
+
+var segSound = document.getElementById("seg-sound");
+SOUNDS.forEach(function (id) {
+  var btn = document.createElement("button");
+  btn.className = "btn seg-btn";
+  btn.type = "button";
+  btn.setAttribute("aria-pressed", "false");
+  btn.textContent = T.soundNames[id];
+  btn.addEventListener("click", function () { state.sound = id; scheduleSave(); render(); });
+  segSound.appendChild(btn);
+});
+
+var THEMES = ["auto", "light", "dark"];
+var segTheme = document.getElementById("seg-theme");
+THEMES.forEach(function (id) {
+  var btn = document.createElement("button");
+  btn.className = "btn seg-btn";
+  btn.type = "button";
+  btn.setAttribute("aria-pressed", "false");
+  btn.textContent = T.themeNames[id];
+  btn.addEventListener("click", function () {
+    state.theme = id === "auto" ? null : id;
+    applyTheme();
+    scheduleSave();
+    render();
+  });
+  segTheme.appendChild(btn);
+});
+
+/* ===== Render ===== */
+var bpmSlider = document.getElementById("bpm-main");
+var bpmReadout = document.getElementById("bpm-readout");
+var tempoNameEl = document.getElementById("tempo-name");
+var tapCapEl = document.getElementById("tap-cap");
+var btnTap = document.getElementById("btn-tap");
+var btnToggle = document.getElementById("btn-toggle");
+var iconPlay = document.getElementById("icon-play");
+var iconStop = document.getElementById("icon-stop");
+var toggleLabel = document.getElementById("toggle-label");
+var btnSettings = document.getElementById("btn-settings");
+var sheet = document.getElementById("sheet");
+var hintEl = document.getElementById("hint");
+var volSlider = document.getElementById("vol-main");
+var volVal = document.getElementById("vol-val");
+var accSlider = document.getElementById("acc-main");
+var accVal = document.getElementById("acc-val");
+var rowVibe = document.getElementById("row-vibe");
+var rowWake = document.getElementById("row-wake");
+var btnMinus5 = document.getElementById("btn-minus5");
+var btnMinus1 = document.getElementById("btn-minus1");
+var btnPlus1 = document.getElementById("btn-plus1");
+var btnPlus5 = document.getElementById("btn-plus5");
+
+function render() {
+  app.classList.toggle("is-tapping", !!state.tapping);
+  bpmReadout.textContent = state.bpm;
+  bpmSlider.value = state.bpm;
+  bpmSlider.style.setProperty("--fill", ((state.bpm - 30) / 210 * 100).toFixed(1) + "%");
+  btnMinus5.disabled = state.bpm <= 30;
+  btnMinus1.disabled = state.bpm <= 30;
+  btnPlus1.disabled = state.bpm >= 240;
+  btnPlus5.disabled = state.bpm >= 240;
+
+  if (state.tapping) {
+    tempoNameEl.textContent = (state.tapCount >= 2) ? T.tapSubtitleMore : T.tapSubtitleFirst;
+    tapCapEl.textContent = T.tapCountPlural(state.tapCount);
+  } else {
+    tempoNameEl.textContent = tempoName(state.bpm);
+    tapCapEl.textContent = T.tapCaptionIdle;
+  }
+  btnTap.classList.toggle("is-active", !!state.tapping);
+
+  btnToggle.classList.toggle("is-active", state.isPlaying);
+  btnToggle.setAttribute("aria-pressed", state.isPlaying ? "true" : "false");
+  iconPlay.hidden = state.isPlaying;
+  iconStop.hidden = !state.isPlaying;
+  toggleLabel.textContent = state.isPlaying ? T.stop : T.start;
+
+  btnSettings.setAttribute("aria-expanded", state.settingsOpen ? "true" : "false");
+  app.classList.toggle("sheet-open", !!state.settingsOpen);
+  sheet.setAttribute("aria-hidden", state.settingsOpen ? "false" : "true");
+
+  var showHint = IS_IOS && state.isPlaying && !state.hintDismissed;
+  hintEl.hidden = !showHint;
+
+  volSlider.value = state.volume;
+  volSlider.style.setProperty("--fill", state.volume + "%");
+  volVal.textContent = state.volume + "%";
+  accSlider.value = state.accentVolume;
+  accSlider.style.setProperty("--fill", state.accentVolume + "%");
+  accVal.textContent = "+" + state.accentVolume + "%";
+
+  rowVibe.disabled = IS_IOS;
+  rowVibe.setAttribute("aria-checked", (!IS_IOS && state.vibrationEnabled) ? "true" : "false");
+  document.getElementById("vibe-cap-ios").hidden = !IS_IOS;
+  document.getElementById("vibe-cap-default").hidden = IS_IOS;
+  rowWake.setAttribute("aria-checked", state.wakeLockEnabled ? "true" : "false");
+
+  Array.prototype.forEach.call(segMeter.children, function (btn, i) {
+    btn.setAttribute("aria-pressed", METERS[i].id === state.meterId ? "true" : "false");
+  });
+  Array.prototype.forEach.call(segSub.children, function (btn, i) {
+    btn.setAttribute("aria-pressed", SUBDIVS[i].id === state.subdivId ? "true" : "false");
+  });
+  Array.prototype.forEach.call(segSound.children, function (btn, i) {
+    btn.setAttribute("aria-pressed", SOUNDS[i] === state.sound ? "true" : "false");
+  });
+  var themeId = state.theme === "light" ? "light" : state.theme === "dark" ? "dark" : "auto";
+  Array.prototype.forEach.call(segTheme.children, function (btn, i) {
+    btn.setAttribute("aria-pressed", THEMES[i] === themeId ? "true" : "false");
+  });
+}
+
+/* ===== Events ===== */
+btnToggle.addEventListener("click", toggle);
+btnTap.addEventListener("click", tap);
+bpmSlider.addEventListener("input", function (e) { setBpm(e.target.value); });
+btnMinus5.addEventListener("click", function () { setBpm(state.bpm - 5); });
+btnMinus1.addEventListener("click", function () { setBpm(state.bpm - 1); });
+btnPlus1.addEventListener("click", function () { setBpm(state.bpm + 1); });
+btnPlus5.addEventListener("click", function () { setBpm(state.bpm + 5); });
+
+btnSettings.addEventListener("click", openSettings);
+document.getElementById("btn-close-settings").addEventListener("click", closeSettings);
+document.getElementById("btn-scrim").addEventListener("click", closeSettings);
+document.getElementById("btn-close-hint").addEventListener("click", function () { state.hintDismissed = true; render(); });
+
+volSlider.addEventListener("input", function (e) { state.volume = Number(e.target.value); scheduleSave(); render(); });
+accSlider.addEventListener("input", function (e) { state.accentVolume = Number(e.target.value); scheduleSave(); render(); });
+rowVibe.addEventListener("click", function () { if (!IS_IOS) { state.vibrationEnabled = !state.vibrationEnabled; scheduleSave(); render(); } });
+rowWake.addEventListener("click", function () {
+  state.wakeLockEnabled = !state.wakeLockEnabled;
+  scheduleSave();
+  if (!state.wakeLockEnabled) releaseWakeLock(); else if (state.isPlaying) requestWakeLock();
+  render();
+});
+
+document.addEventListener("keydown", function (e) {
+  var tag = e.target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  if (e.code === "Escape") { if (state.settingsOpen) closeSettings(); return; }
+  if (e.code === "Space") { e.preventDefault(); toggle(); return; }
+  if (e.code === "ArrowUp") { e.preventDefault(); setBpm(state.bpm + 1); return; }
+  if (e.code === "ArrowDown") { e.preventDefault(); setBpm(state.bpm - 1); return; }
+  if (e.code === "ArrowRight") { e.preventDefault(); setBpm(state.bpm + 10); return; }
+  if (e.code === "ArrowLeft") { e.preventDefault(); setBpm(state.bpm - 10); return; }
+  if (e.key === "t" || e.key === "T") { tap(); return; }
+});
+
+/* ===== Translate static markup ===== */
+function translateStaticMarkup() {
+  if (LOCALE === "pl") return;
+  document.querySelectorAll("[data-i18n]").forEach(function (el) {
+    var key = el.getAttribute("data-i18n");
+    if (T[key] !== undefined) el.textContent = T[key];
+  });
+  document.querySelectorAll("[data-i18n-aria]").forEach(function (el) {
+    var key = el.getAttribute("data-i18n-aria");
+    if (T[key] !== undefined) el.setAttribute("aria-label", T[key]);
+  });
+}
+
+/* ===== PWA: register the service worker ===== */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  });
+}
+
+/* ===== Initialization ===== */
+translateStaticMarkup();
+applyTheme();
+applyReducedMotion();
+buildLeds();
+render();
+</script>
+</body>
+</html>
