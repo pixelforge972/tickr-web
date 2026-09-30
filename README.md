@@ -66,7 +66,7 @@ Bump the cache version in `sw.js` (`VERSION`) on every meaningful static-asset r
 
 ### Action pinning
 
-The four GitHub Actions the workflow uses are pinned to a full commit SHA, not a version tag (`actions/checkout@11d5960a... # v4.4.0`, etc.) — a tag can be moved to point at different code if an action's maintainer account is ever compromised, a SHA can't. The repo setting **Settings → Actions → General → Require actions to be pinned to a full-length commit SHA** is enabled, so an unpinned action reference in this or any future workflow fails CI outright rather than silently running.
+The four GitHub Actions the workflow uses are pinned to a full commit SHA, not a version tag (`actions/checkout@3d3c42e... # v7.0.1`, etc.) — a tag can be moved to point at different code if an action's maintainer account is ever compromised, a SHA can't. The repo setting **Settings → Actions → General → Require actions to be pinned to a full-length commit SHA** is enabled, so an unpinned action reference in this or any future workflow fails CI outright rather than silently running.
 
 ## Maintenance
 
