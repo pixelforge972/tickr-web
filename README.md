@@ -44,6 +44,7 @@ icon.svg
 LICENSE
 CHANGELOG.md
 .github/workflows/deploy-pages.yml
+.github/dependabot.yml
 ```
 
 ## Deploy (GitHub Pages)
@@ -63,9 +64,13 @@ git push origin v0.1.0
 
 Bump the cache version in `sw.js` (`VERSION`) on every meaningful static-asset release, otherwise users stay stuck on the old cached version.
 
+### Action pinning
+
+The four GitHub Actions the workflow uses are pinned to a full commit SHA, not a version tag (`actions/checkout@11d5960a... # v4.4.0`, etc.) — a tag can be moved to point at different code if an action's maintainer account is ever compromised, a SHA can't. The repo setting **Settings → Actions → General → Require actions to be pinned to a full-length commit SHA** is enabled, so an unpinned action reference in this or any future workflow fails CI outright rather than silently running.
+
 ## Maintenance
 
-There are no dependencies to update — the project has no `package.json`/`node_modules` by design, so there's nothing for `npm audit` or Dependabot to scan beyond the four pinned GitHub Actions below.
+There are no dependencies to update — the project has no `package.json`/`node_modules` by design, so there's nothing for `npm audit` or Dependabot to scan beyond the four pinned GitHub Actions below. Dependabot security updates are enabled for those, so an advisory against one of the pinned SHAs shows up as an automatic PR bumping it.
 
 **Releasing a change:**
 
@@ -80,7 +85,7 @@ There are no dependencies to update — the project has no `package.json`/`node_
 
 - Vibration API on Android browsers — re-check current support on [caniuse](https://caniuse.com/vibration-api) before assuming the feature-detect branch (`"vibrate" in navigator`) still degrades correctly; iOS Safari support is not expected to change (WebKit removed it in 2017).
 - Screen Wake Lock API in installed/standalone PWAs, especially on iOS — support was broken by a WebKit bug until iOS 18.4; re-verify after major iOS releases via [caniuse](https://caniuse.com/wake-lock).
-- The pinned GitHub Actions versions (`actions/checkout@v4`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`) — bump them if GitHub deprecates a major version.
+- The pinned GitHub Actions SHAs (`actions/checkout`, `actions/configure-pages`, `actions/upload-pages-artifact`, `actions/deploy-pages`) — Dependabot opens a PR automatically when one needs bumping; merging it is enough, since Dependabot resolves the new SHA itself.
 
 ## Known limitations
 
