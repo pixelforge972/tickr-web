@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icon.svg">
-<title>Metronome</title>
+<title>Tickr</title>
 <style>
 html,body{margin:0;background:#0E0F10}
 body{margin:0}
@@ -50,8 +50,7 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 .mt-inner{height:100%; width:100%; margin:0 auto; padding:var(--space-4); display:grid; gap:var(--space-4);
   grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto;
   grid-template-areas:"top" "rhythm" "display" "tempo" "actions"}
-.top{grid-area:top; display:flex; align-items:center; justify-content:space-between; min-height:var(--hit)}
-.brand{font-size:15px; font-weight:600; letter-spacing:.02em; color:var(--text-2); padding-left:var(--space-1)}
+.top{grid-area:top; display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); min-height:var(--hit)}
 .rhythm{grid-area:rhythm; display:flex; flex-direction:column; gap:var(--space-2)}
 .tempo{grid-area:tempo; display:flex; flex-direction:column; gap:var(--space-2)}
 .actions{grid-area:actions; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.7fr); gap:var(--space-3)}
@@ -109,6 +108,8 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 .seg{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:4px; padding:4px; background:var(--surface);
   border-radius:var(--r-md); box-shadow:inset 0 0 0 1px var(--line)}
 .seg-btn{min-height:var(--hit); border-radius:var(--r-sm); background:transparent; color:var(--text-2); font-size:16px; font-weight:600; font-variant-numeric:tabular-nums}
+.seg-mode{grid-auto-columns:max-content}
+.seg-mode .seg-btn{padding:0 var(--space-4)}
 .seg-btn:active,.seg-btn.is-pressed{background:var(--surface-2); transform:none}
 .seg-btn[aria-pressed="true"],.seg-btn.is-selected{background:var(--accent-soft); color:var(--accent-ink); box-shadow:inset 0 0 0 1.5px var(--accent-line)}
 .seg-btn:disabled{background:transparent; box-shadow:none; opacity:.5}
@@ -146,6 +147,79 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 .hint > svg{flex:none; color:var(--accent-ink)}
 .hint .icon-btn{flex:none}
 .hint[hidden]{display:none}
+.mt-inner[hidden],.tn-inner[hidden]{display:none}
+/* The HTML `hidden` attribute doesn't hide inline <svg> elements in every
+   browser (their own default stylesheet wins over the generic [hidden] rule) —
+   force it everywhere `hidden` is used to toggle an icon. */
+svg[hidden]{display:none}
+
+/* ===== Tuner: same grid skeleton pattern as the metronome ===== */
+.tn-inner{height:100%; width:100%; margin:0 auto; padding:var(--space-4); display:grid; gap:var(--space-4);
+  grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) auto auto;
+  grid-template-areas:"top" "display" "listen" "tones"}
+.tn-listen{grid-area:listen; display:flex}
+.tn-listen .btn-tap{width:100%}
+.btn-listen[aria-busy="true"] .tap-cap{color:var(--text-2)}
+.note{display:inline-flex; align-items:baseline; font-size:clamp(88px,min(36cqi,19cqh),240px); font-weight:600; line-height:.92; letter-spacing:-.035em;
+  font-variant-numeric:tabular-nums; color:var(--text)}
+.note-acc{font-size:.42em; align-self:flex-start; margin-top:.1em; letter-spacing:0}
+.note-oct{font-size:.42em; letter-spacing:0; margin-left:.04em; color:var(--text-2)}
+.note.is-empty{color:var(--text-3)}
+.note.in-tune,.note.in-tune .note-oct{color:var(--accent-ink)}
+/* Cents meter: +-50 cents = +-50% of rail width, so --c in % is cents */
+.cents{width:100%; max-width:520px; display:flex; flex-direction:column; gap:6px; --c:0%; --fl:50%; --fw:0%}
+.cents-track{position:relative; height:32px}
+.cents-rail{position:absolute; left:0; right:0; top:10px; height:8px; border-radius:4px; background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--line)}
+.cents-zone{position:absolute; top:10px; height:8px; left:45%; width:10%; background:var(--accent-soft); box-shadow:inset 1px 0 0 var(--accent-line), inset -1px 0 0 var(--accent-line)}
+.cents-ticks{position:absolute; left:0; right:0; top:22px; height:10px; display:flex; justify-content:space-between}
+.cents-tick{width:2px; height:6px; border-radius:1px; background:var(--led-ring)}
+.cents-tick.major{height:10px; background:var(--text-2)}
+.cents-center{position:absolute; left:calc(50% - 1px); top:4px; width:2px; height:20px; border-radius:1px; background:var(--text-2)}
+.cents-fill{position:absolute; top:10px; height:8px; border-radius:4px; left:var(--fl); width:var(--fw); background:var(--text-2); transition:left 80ms linear, width 80ms linear}
+.cents-marker{position:absolute; top:4px; left:calc(50% + var(--c)); width:20px; height:20px; margin-left:-10px; border-radius:50%; background:var(--text);
+  box-shadow:0 0 0 3px var(--bg); transition:left 80ms linear}
+.cents.at-rest .cents-fill,.cents.at-rest .cents-marker{visibility:hidden}
+.cents.in-tune .cents-fill{background:var(--accent)}
+.cents.in-tune .cents-marker{background:var(--accent); box-shadow:inset 0 0 0 2.5px var(--accent-ring), 0 0 0 3px var(--bg)}
+.cents-labels{display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:var(--text-3); font-variant-numeric:tabular-nums}
+/* Status: reserves 2 lines so a message change never shifts the layout */
+.tn-status{display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; min-height:68px; width:100%; max-width:30em; text-align:center}
+.tn-msg{margin:0; display:flex; align-items:flex-start; justify-content:center; gap:var(--space-2); font-size:16px; font-weight:600; line-height:1.35; color:var(--text); text-wrap:balance}
+.tn-msg.muted{color:var(--text-2)}
+.tn-msg > svg{flex:none; margin-top:1px; color:var(--text-2)}
+.tn-reading{align-items:baseline}
+.tn-num{font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; min-width:4ch; text-align:right}
+.tn-word{font-size:16px; font-weight:600; color:var(--text-2)}
+.tn-reading.in-tune .tn-num,.tn-reading.in-tune .tn-word{color:var(--accent-ink)}
+.tn-cap{font-size:13px; font-weight:500; color:var(--text-3); font-variant-numeric:tabular-nums}
+/* Reference tone generator */
+.tn-tones{grid-area:tones; display:flex; flex-direction:column; gap:var(--space-2); min-width:0}
+.tn-tones-head{display:flex; padding-left:var(--space-1)}
+.tn-tones-title{font-size:13px; font-weight:600; color:var(--text-3)}
+.seg-tones{grid-auto-flow:row; grid-auto-columns:auto; grid-template-columns:repeat(4,minmax(0,1fr))}
+.seg-tones.is-expanded{grid-template-columns:repeat(6,minmax(0,1fr))}
+.seg-tones .seg-btn{padding:0 2px; white-space:nowrap}
+.tone-toggle{align-self:center; box-shadow:inset 0 0 0 1px var(--line)}
+.tone-toggle svg{transition:transform 200ms cubic-bezier(.2,.8,.2,1)}
+.tone-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+@container mt (orientation: landscape){
+  .tn-inner{--action-h:64px; padding:var(--space-4) var(--space-5); column-gap:var(--space-5); row-gap:var(--space-3);
+    grid-template-columns:minmax(0,1.1fr) minmax(300px,1fr); grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:"top listen" "display tones"}
+  .tn-tones{align-self:end}
+  .tn-tones-head{display:none}
+  .tn-status{min-height:60px}
+  .note{font-size:clamp(72px,min(17cqi,30cqh),240px)}
+}
+@container mt (orientation: landscape) and (min-height: 600px){
+  .tn-inner{--action-h:88px; max-width:1180px; padding:var(--space-6) var(--space-7); column-gap:64px; row-gap:var(--space-4);
+    grid-template-columns:minmax(0,1fr) minmax(360px,440px); grid-template-rows:auto minmax(0,1fr) auto auto minmax(0,1fr);
+    grid-template-areas:"top top" "display ." "display listen" "display tones" "display ."}
+  .tn-tones{align-self:start}
+  .tn-tones-head{display:flex}
+  .tn-status{min-height:68px}
+  .note{font-size:clamp(72px,min(19cqi,30cqh),240px)}
+}
 
 /* ===== Settings sheet ===== */
 .scrim{position:absolute; inset:0; z-index:10; border:0; padding:0; margin:0; background:var(--scrim); opacity:0; visibility:hidden; transition:opacity 200ms, visibility 0s 200ms; cursor:pointer}
@@ -190,13 +264,13 @@ a{color:#F5A524}a:hover{color:#FFC45E}
   .bpm{font-size:clamp(72px,min(19cqi,30cqh),240px)}
 }
 /* ===== Reduced motion: no flash or glow, fill change only ===== */
-.rm .led,.rm .display,.rm .knob,.rm .switch,.rm .sheet,.rm .scrim,.rm .btn,.rm .bpm{transition:none !important}
+.rm .led,.rm .display,.rm .knob,.rm .switch,.rm .sheet,.rm .scrim,.rm .btn,.rm .bpm,.rm .tone-toggle svg,.rm .cents-fill,.rm .cents-marker{transition:none !important}
 .rm .led.on{box-shadow:inset 0 0 0 2px var(--led-on)}
 .rm .led-accent.on{box-shadow:inset 0 0 0 2.5px var(--accent-ring)}
 .rm .display.flash,.rm .display.flash-accent{background-color:transparent}
 .rm .btn:active,.rm .btn.is-pressed{transform:none}
 @media (prefers-reduced-motion: reduce){
-.mt .led,.mt .display,.mt .knob,.mt .switch,.mt .sheet,.mt .scrim,.mt .btn,.mt .bpm{transition:none !important}
+.mt .led,.mt .display,.mt .knob,.mt .switch,.mt .sheet,.mt .scrim,.mt .btn,.mt .bpm,.mt .tone-toggle svg,.mt .cents-fill,.mt .cents-marker{transition:none !important}
 .mt .led.on{box-shadow:inset 0 0 0 2px var(--led-on)}
 .mt .led-accent.on{box-shadow:inset 0 0 0 2.5px var(--accent-ring)}
 .mt .display.flash,.mt .display.flash-accent{background-color:transparent}
@@ -208,8 +282,11 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 <div class="tk mt theme-dark" id="app">
 <div class="mt-inner">
 <header class="top">
-<span class="brand" data-i18n="brand">Metronome</span>
-<button class="btn icon-btn" type="button" id="btn-settings" data-i18n-aria="settingsLabel" aria-label="Settings" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="10" cy="17" r="2.5"></circle></svg></button>
+<div class="seg seg-mode" role="group" data-i18n-aria="modeLabel" aria-label="Mode">
+<button class="btn seg-btn" type="button" data-mode="metronome" data-i18n="modeMetronome" aria-pressed="true">Metronome</button>
+<button class="btn seg-btn" type="button" data-mode="tuner" data-i18n="modeTuner" aria-pressed="false">Tuner</button>
+</div>
+<button class="btn icon-btn btn-settings" type="button" data-i18n-aria="settingsLabel" aria-label="Settings" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="10" cy="17" r="2.5"></circle></svg></button>
 </header>
 <section class="rhythm" data-i18n-aria="rhythmSectionLabel" aria-label="Rhythm">
 <div class="seg seg-meter" id="seg-meter" role="group" data-i18n-aria="meterLabel" aria-label="Meter"></div>
@@ -250,6 +327,45 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 </button>
 </section>
 </div>
+<div class="tn-inner" id="tuner-view" hidden>
+<header class="top">
+<div class="seg seg-mode" role="group" data-i18n-aria="modeLabel" aria-label="Mode">
+<button class="btn seg-btn" type="button" data-mode="metronome" data-i18n="modeMetronome" aria-pressed="false">Metronome</button>
+<button class="btn seg-btn" type="button" data-mode="tuner" data-i18n="modeTuner" aria-pressed="true">Tuner</button>
+</div>
+<button class="btn icon-btn btn-settings" type="button" data-i18n-aria="settingsLabel" aria-label="Settings" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="10" cy="17" r="2.5"></circle></svg></button>
+</header>
+<section class="display" data-i18n-aria="tunerDetectLabel" aria-label="Detected note">
+<div class="note is-empty" id="tuner-note">
+<span id="tuner-note-empty">—</span>
+<span id="tuner-note-content" hidden><span id="tuner-note-letter"></span><span class="note-acc" id="tuner-note-acc" hidden>♯</span><span class="note-oct" id="tuner-note-oct"></span></span>
+</div>
+<div class="cents at-rest" id="cents-meter" style="--c:0%; --fl:50%; --fw:0%" role="meter" data-i18n-aria="tunerMeterLabel" aria-label="Deviation in cents" aria-valuemin="-50" aria-valuemax="50" aria-valuenow="0">
+<div class="cents-track" aria-hidden="true">
+<div class="cents-rail"></div>
+<div class="cents-zone"></div>
+<div class="cents-ticks"><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick major"></span><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick"></span><span class="cents-tick"></span></div>
+<div class="cents-center"></div>
+<div class="cents-fill" id="cents-fill"></div>
+<div class="cents-marker" id="cents-marker"></div>
+</div>
+<div class="cents-labels" aria-hidden="true"><span>♭ −50</span><span>0</span><span>+50 ♯</span></div>
+</div>
+<div class="tn-status" role="status">
+<p class="tn-msg muted" id="tuner-msg"><svg id="tuner-msg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path><path id="tuner-msg-icon-slash" d="M4 4l16 16" hidden></path></svg><span id="tuner-msg-text" data-i18n="tunerStatusIdle">Tap Listen or play a reference tone below.</span></p>
+<p class="tn-msg tn-reading" id="tuner-reading" hidden><span class="tn-num" id="tuner-num"></span><span class="tn-word" id="tuner-word"></span></p>
+<span class="tn-cap" id="tuner-cap" data-i18n="tunerRefPitchCap">A4 = 440 Hz</span>
+</div>
+</section>
+<section class="tn-listen">
+<button class="btn btn-tap btn-listen" type="button" id="btn-mic-toggle" aria-pressed="false" aria-busy="false"><span class="tap-label listen-row"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg><span id="listen-label" data-i18n="tunerListenLabel">Listen</span></span><span class="tap-cap" id="listen-cap" data-i18n="tunerCapIdle">use microphone</span></button>
+</section>
+<section class="tn-tones" aria-labelledby="tones-title">
+<div class="tn-tones-head"><span class="tn-tones-title" id="tones-title" data-i18n="tunerTonesTitle">Reference tone</span></div>
+<div class="seg seg-tones" id="tone-grid" role="group" aria-labelledby="tones-title"></div>
+<button class="btn icon-btn tone-toggle" type="button" id="btn-tone-more" data-i18n-aria="tunerShowMore" aria-label="Show all notes" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</section>
+</div>
 <button class="scrim" type="button" id="btn-scrim" data-i18n-aria="closeSettings" aria-label="Close settings"></button>
 <aside class="sheet" id="sheet" data-i18n-aria="settingsTitle" aria-label="Settings" aria-hidden="true">
 <div class="sheet-grip" aria-hidden="true"></div>
@@ -283,7 +399,7 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 <span class="field-label" id="thm-main" data-i18n="themeLabel">Appearance</span>
 <div class="seg" id="seg-theme" role="group" aria-labelledby="thm-main"></div>
 </div>
-<p class="sheet-version" data-i18n="versionLabel">Metronome 0.1.0</p>
+<p class="sheet-version" data-i18n="versionLabel">Tickr 0.2.1</p>
 </aside>
 <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
 </div>
@@ -293,7 +409,7 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 /* ===== i18n ===== */
 var I18N = {
   pl: {
-    brand: "Metronom", metaDescription: "Minimalistyczny metronom — bez instalacji, działa offline.",
+    brand: "Tickr", metaDescription: "Minimalistyczny metronom — bez instalacji, działa offline.",
     settingsLabel: "Ustawienia", meterLabel: "Metrum", subdivLabel: "Podział",
     bpmUnit: "BPM", bpmSliderLabel: "Tempo w BPM", start: "Start", stop: "Stop", tapLabel: "Tap",
     tapCaptionIdle: "wystukaj tempo", settingsTitle: "Ustawienia", volumeLabel: "Głośność",
@@ -304,7 +420,19 @@ var I18N = {
     closeSettings: "Zamknij ustawienia", stepMinus5: "Wolniej o 5", stepMinus1: "Wolniej o 1",
     stepPlus1: "Szybciej o 1", stepPlus5: "Szybciej o 5", themeLabel: "Wygląd",
     rhythmSectionLabel: "Rytm", displaySectionLabel: "Tempo i beat", tempoSectionLabel: "Zmiana tempa",
-    versionLabel: "Metronom 0.1.0",
+    versionLabel: "Tickr 0.2.1",
+    modeLabel: "Tryb", modeMetronome: "Metronom", modeTuner: "Stroik",
+    tunerDetectLabel: "Wykryty dźwięk", tunerNoNote: "Brak dźwięku", tunerMeterLabel: "Odchylenie w centach",
+    tunerListenLabel: "Słuchaj",
+    tunerStatusIdle: "Stuknij „Słuchaj” albo zagraj dźwięk wzorcowy poniżej.",
+    tunerStatusIdleNoMic: "Zagraj dźwięk wzorcowy poniżej, żeby dostroić na ucho.",
+    tunerListening: "Zagraj pojedynczy dźwięk…",
+    tunerMicPending: "Proszę o dostęp do mikrofonu…",
+    tunerMicDenied: "Brak dostępu do mikrofonu. Zezwól na niego w ustawieniach strony i spróbuj ponownie.",
+    tunerFlat: "za nisko", tunerSharp: "za wysoko", tunerInTune: "czysto",
+    tunerCapIdle: "użyj mikrofonu", tunerCapPending: "czekam na zgodę", tunerCapListening: "nasłuchuję…", tunerCapDenied: "spróbuj ponownie",
+    tunerTonesTitle: "Dźwięk wzorcowy", tunerRefPitchCap: "A4 = 440 Hz", decimalSeparator: ",",
+    tunerShowMore: "Pokaż wszystkie dźwięki", tunerShowFewer: "Pokaż mniej dźwięków",
     soundNames: { click: "Klik", wood: "Drewno", hat: "Hi-hat" },
     themeNames: { auto: "Systemowy", light: "Jasny", dark: "Ciemny" },
     subdivNames: { "1": "Brak", "2": "Ósemki", "3": "Triole", "4": "Szesnastki" },
@@ -319,7 +447,7 @@ var I18N = {
     stoppedAnnouncement: "Metronom zatrzymany"
   },
   en: {
-    brand: "Metronome", metaDescription: "A minimalist metronome — no install needed, works offline.",
+    brand: "Tickr", metaDescription: "A minimalist metronome — no install needed, works offline.",
     settingsLabel: "Settings", meterLabel: "Meter", subdivLabel: "Subdivision",
     bpmUnit: "BPM", bpmSliderLabel: "Tempo in BPM", start: "Start", stop: "Stop", tapLabel: "Tap",
     tapCaptionIdle: "tap tempo", settingsTitle: "Settings", volumeLabel: "Volume",
@@ -330,7 +458,19 @@ var I18N = {
     closeSettings: "Close settings", stepMinus5: "5 slower", stepMinus1: "1 slower",
     stepPlus1: "1 faster", stepPlus5: "5 faster", themeLabel: "Appearance",
     rhythmSectionLabel: "Rhythm", displaySectionLabel: "Tempo and beat", tempoSectionLabel: "Change tempo",
-    versionLabel: "Metronome 0.1.0",
+    versionLabel: "Tickr 0.2.1",
+    modeLabel: "Mode", modeMetronome: "Metronome", modeTuner: "Tuner",
+    tunerDetectLabel: "Detected note", tunerNoNote: "No note", tunerMeterLabel: "Deviation in cents",
+    tunerListenLabel: "Listen",
+    tunerStatusIdle: "Tap Listen or play a reference tone below.",
+    tunerStatusIdleNoMic: "Play a reference tone below to tune by ear.",
+    tunerListening: "Play a single note…",
+    tunerMicPending: "Requesting microphone access…",
+    tunerMicDenied: "Microphone access denied. Allow it in your site settings, then try again.",
+    tunerFlat: "flat", tunerSharp: "sharp", tunerInTune: "in tune",
+    tunerCapIdle: "use microphone", tunerCapPending: "waiting for permission", tunerCapListening: "listening…", tunerCapDenied: "try again",
+    tunerTonesTitle: "Reference tone", tunerRefPitchCap: "A4 = 440 Hz", decimalSeparator: ".",
+    tunerShowMore: "Show all notes", tunerShowFewer: "Show fewer notes",
     soundNames: { click: "Click", wood: "Wood", hat: "Hi-hat" },
     themeNames: { auto: "System", light: "Light", dark: "Dark" },
     subdivNames: { "1": "None", "2": "Eighths", "3": "Triplets", "4": "Sixteenths" },
@@ -369,7 +509,7 @@ var STORAGE_KEY = "metronome-settings";
 var state = {
   bpm: 120, meterId: "4/4", subdivId: "1", volume: 80, accentVolume: 40, sound: "click",
   vibrationEnabled: false, wakeLockEnabled: true, theme: null, locale: LOCALE,
-  isPlaying: false, settingsOpen: false, hintDismissed: false
+  isPlaying: false, settingsOpen: false, hintDismissed: false, mode: "metronome"
 };
 (function loadSettings() {
   try {
@@ -593,6 +733,191 @@ document.addEventListener("visibilitychange", function () {
   if (!document.hidden && state.isPlaying) requestWakeLock();
 });
 
+/* ===== Tuner: reference tone generator (two octaves, C3..B4) =====
+   Ported from the Claude Design tuner prototype (same canvas as the metronome's
+   own design) — see DECISIONS.md in the project's Obsidian vault for the source
+   link and rationale (not part of this repo). */
+var NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+var TUNER_BASE_MIDI = 48; // C3
+var TUNER_NOTE_COUNT = 24;
+function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+function midiToName(m) { return NOTE_NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1); }
+var TONE_FREQS = [];
+for (var toneI = 0; toneI < TUNER_NOTE_COUNT; toneI++) TONE_FREQS.push(midiToFreq(TUNER_BASE_MIDI + toneI));
+
+var toneOsc = null, toneGain = null, toneActiveIndex = -1;
+function stopTone() {
+  if (!toneOsc) return;
+  var osc = toneOsc, gain = toneGain, now = audioCtx.currentTime;
+  try {
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.04);
+    osc.stop(now + 0.05);
+  } catch (e) {}
+  toneOsc = null; toneGain = null;
+  toneActiveIndex = -1;
+}
+function playTone(index) {
+  ensureAudio();
+  if (!audioCtx) return;
+  if (state.isPlaying) stop();
+  stopDetection();
+  stopTone();
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  var now = audioCtx.currentTime;
+  osc.type = "sine";
+  osc.frequency.value = TONE_FREQS[index];
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  toneOsc = osc; toneGain = gain; toneActiveIndex = index;
+  renderTuner();
+}
+function toggleTone(index) {
+  if (toneActiveIndex === index) stopTone();
+  else playTone(index);
+  renderTuner();
+}
+
+/* ===== Tuner: microphone pitch detection =====
+   Autocorrelation with parabolic interpolation, ported from the same design
+   prototype: narrow the buffer to the region between the first near-zero
+   crossing from each end (reduces edge artifacts in the correlation rather
+   than stripping silence — a buffer that's already quiet at sample 0 leaves
+   this a no-op, which is fine, there's nothing to narrow), correlate that
+   window across its full range (no fixed Hz bounds), skip the initial
+   downslope before hunting for the correlation peak (avoids the trivial lag-0
+   maximum), then parabolic-interpolate around that peak. */
+var MIC_SUPPORTED = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+var micStream = null, micSource = null, micAnalyser = null, micRafId = null, micDetectBuf = null, micRequestId = 0;
+var tunerState = "idle"; // idle | pending | listening | detect | denied
+var tunerMidi = 69, tunerCents = 0, tunerFreq = 440;
+var tunerSmooth = null; // {m, c} — exponential smoothing while the same note is held
+var tunerLastValidTime = 0;
+var tunerLastPaint = 0;
+var tunerLastAnnouncedMidi = null;
+var DETECT_REPAINT_MS = 60, DETECT_RMS_GATE = 0.01, DETECT_TRIM_THRESHOLD = 0.2, DETECT_RELEASE_MS = 1500;
+
+function acf(buf, sampleRate) {
+  var size = buf.length, i, j, rms = 0;
+  for (i = 0; i < size; i++) rms += buf[i] * buf[i];
+  if (Math.sqrt(rms / size) < DETECT_RMS_GATE) return -1;
+
+  var r1 = 0, r2 = size - 1;
+  for (i = 0; i < size / 2; i++) if (Math.abs(buf[i]) < DETECT_TRIM_THRESHOLD) { r1 = i; break; }
+  for (i = 1; i < size / 2; i++) if (Math.abs(buf[size - i]) < DETECT_TRIM_THRESHOLD) { r2 = size - i; break; }
+  var b = buf.slice(r1, r2);
+  var n = b.length;
+  var c = new Float32Array(n);
+  for (i = 0; i < n; i++) for (j = 0; j < n - i; j++) c[i] += b[j] * b[j + i];
+
+  var d = 0;
+  while (d < n - 1 && c[d] > c[d + 1]) d++;
+  var mx = -1, mp = -1;
+  for (i = d; i < n; i++) if (c[i] > mx) { mx = c[i]; mp = i; }
+  if (mp <= 0 || mp >= n - 1) return -1;
+
+  var x1 = c[mp - 1], x2 = c[mp], x3 = c[mp + 1];
+  var a = (x1 + x3 - 2 * x2) / 2, bb = (x3 - x1) / 2;
+  return sampleRate / (a ? mp - bb / (2 * a) : mp);
+}
+
+function detectLoop() {
+  if (!micAnalyser) return;
+  micRafId = requestAnimationFrame(detectLoop);
+  var now = performance.now();
+  if (now - tunerLastPaint < DETECT_REPAINT_MS) return; // throttle the analysis itself, not just the repaint
+  tunerLastPaint = now;
+  if (!micDetectBuf || micDetectBuf.length !== micAnalyser.fftSize) micDetectBuf = new Float32Array(micAnalyser.fftSize);
+  micAnalyser.getFloatTimeDomainData(micDetectBuf);
+  var freq = acf(micDetectBuf, audioCtx.sampleRate);
+  if (freq > 0) {
+    var n = 12 * Math.log2(freq / 440) + 69;
+    var m = Math.round(n);
+    var c = (n - m) * 100;
+    if (tunerSmooth && tunerSmooth.m === m) c = tunerSmooth.c * 0.7 + c * 0.3;
+    tunerSmooth = { m: m, c: c };
+    tunerLastValidTime = now;
+    tunerMidi = m; tunerCents = Math.round(c); tunerFreq = freq;
+    tunerState = "detect";
+    renderTuner();
+  } else if (tunerLastValidTime && now - tunerLastValidTime > DETECT_RELEASE_MS && tunerState === "detect") {
+    tunerSmooth = null;
+    tunerState = "listening";
+    renderTuner();
+  }
+}
+
+function startDetection() {
+  if (!MIC_SUPPORTED || micStream) return;
+  if (state.isPlaying) stop();
+  stopTone();
+  tunerState = "pending";
+  renderTuner();
+  ensureAudio();
+  var requestId = ++micRequestId;
+  navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+  }).then(function (stream) {
+    // The user may have left Tuner mode (or re-toggled Listen) while the permission
+    // prompt was pending — stopDetection() bumps micRequestId to invalidate this.
+    if (requestId !== micRequestId) {
+      stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} });
+      return;
+    }
+    micStream = stream;
+    ensureAudio();
+    micSource = audioCtx.createMediaStreamSource(stream);
+    micAnalyser = audioCtx.createAnalyser();
+    micAnalyser.fftSize = 2048;
+    micSource.connect(micAnalyser);
+    tunerSmooth = null;
+    tunerLastValidTime = 0;
+    tunerState = "listening";
+    detectLoop();
+    renderTuner();
+  }).catch(function () {
+    if (requestId !== micRequestId) return;
+    tunerState = "denied";
+    renderTuner();
+  });
+}
+function stopDetection() {
+  micRequestId++; // invalidate any in-flight getUserMedia request from startDetection()
+  if (micRafId) { cancelAnimationFrame(micRafId); micRafId = null; }
+  if (micStream) { micStream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} }); micStream = null; }
+  if (micSource) { try { micSource.disconnect(); } catch (e) {} micSource = null; }
+  micAnalyser = null;
+  tunerSmooth = null;
+  if (tunerState === "listening" || tunerState === "detect" || tunerState === "pending") tunerState = "idle";
+  renderTuner();
+}
+function toggleListen() {
+  if (tunerState === "listening" || tunerState === "detect") { stopDetection(); return; }
+  if (tunerState === "pending") return;
+  startDetection();
+}
+
+/* ===== Tuner: mode switching ===== */
+var mtInner = document.querySelector(".mt-inner");
+var tnInner = document.getElementById("tuner-view");
+function setMode(mode) {
+  if (state.mode === mode) return;
+  state.mode = mode;
+  if (mode === "tuner") {
+    if (state.isPlaying) stop();
+  } else {
+    stopDetection();
+    stopTone();
+  }
+  render();
+  renderTuner();
+}
+
 /* ===== Visuals: LED cache + rAF loop ===== */
 var ledEls = [], pipEls = [], currentLit = -1, flashTimer = null;
 function buildLeds() {
@@ -661,6 +986,8 @@ var announcer = document.getElementById("announcer");
 function start() {
   ensureAudio();
   if (!audioCtx) return;
+  stopTone();
+  stopDetection();
   requestWakeLock();
   startKeepAlive();
   setMediaSessionState(true);
@@ -793,6 +1120,41 @@ THEMES.forEach(function (id) {
   segTheme.appendChild(btn);
 });
 
+var toneGrid = document.getElementById("tone-grid");
+var toneExtraButtons = [];
+var toneExpanded = false;
+// C4, E4, G4, A4: concert pitch (A4=440Hz) plus the C major triad notes closest to it —
+// a small, musically-coherent default rather than an arbitrary slice of the range.
+var TONE_POPULAR_INDICES = [12, 16, 19, 21];
+for (var gridI = 0; gridI < TUNER_NOTE_COUNT; gridI++) {
+  (function (index) {
+    var btn = document.createElement("button");
+    btn.className = "btn seg-btn";
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = midiToName(TUNER_BASE_MIDI + index);
+    btn.addEventListener("click", function () { toggleTone(index); });
+    if (TONE_POPULAR_INDICES.indexOf(index) < 0) { btn.hidden = true; toneExtraButtons.push(btn); }
+    toneGrid.appendChild(btn);
+  })(gridI);
+}
+var btnToneMore = document.getElementById("btn-tone-more");
+btnToneMore.addEventListener("click", function () {
+  toneExpanded = !toneExpanded;
+  toneExtraButtons.forEach(function (btn) { btn.hidden = !toneExpanded; });
+  toneGrid.classList.toggle("is-expanded", toneExpanded);
+  btnToneMore.setAttribute("aria-expanded", toneExpanded ? "true" : "false");
+  btnToneMore.setAttribute("aria-label", toneExpanded ? T.tunerShowFewer : T.tunerShowMore);
+});
+
+var segModeEls = document.querySelectorAll(".seg-mode");
+segModeEls.forEach(function (seg) {
+  Array.prototype.forEach.call(seg.children, function (btn) {
+    btn.addEventListener("click", function () { setMode(btn.getAttribute("data-mode")); });
+  });
+});
+document.getElementById("btn-mic-toggle").addEventListener("click", toggleListen);
+
 /* ===== Render ===== */
 var bpmSlider = document.getElementById("bpm-main");
 var bpmReadout = document.getElementById("bpm-readout");
@@ -803,7 +1165,7 @@ var btnToggle = document.getElementById("btn-toggle");
 var iconPlay = document.getElementById("icon-play");
 var iconStop = document.getElementById("icon-stop");
 var toggleLabel = document.getElementById("toggle-label");
-var btnSettings = document.getElementById("btn-settings");
+var btnSettingsEls = document.querySelectorAll(".btn-settings");
 var sheet = document.getElementById("sheet");
 var hintEl = document.getElementById("hint");
 var volSlider = document.getElementById("vol-main");
@@ -816,6 +1178,24 @@ var btnMinus5 = document.getElementById("btn-minus5");
 var btnMinus1 = document.getElementById("btn-minus1");
 var btnPlus1 = document.getElementById("btn-plus1");
 var btnPlus5 = document.getElementById("btn-plus5");
+var tunerNoteEl = document.getElementById("tuner-note");
+var tunerNoteEmptyEl = document.getElementById("tuner-note-empty");
+var tunerNoteContentEl = document.getElementById("tuner-note-content");
+var tunerNoteLetterEl = document.getElementById("tuner-note-letter");
+var tunerNoteAccEl = document.getElementById("tuner-note-acc");
+var tunerNoteOctEl = document.getElementById("tuner-note-oct");
+var tunerCentsEl = document.getElementById("cents-meter");
+var tunerMsgEl = document.getElementById("tuner-msg");
+var tunerReadingEl = document.getElementById("tuner-reading");
+var tunerMsgIconEl = document.getElementById("tuner-msg-icon");
+var tunerMsgIconSlashEl = document.getElementById("tuner-msg-icon-slash");
+var tunerMsgTextEl = document.getElementById("tuner-msg-text");
+var tunerNumEl = document.getElementById("tuner-num");
+var tunerWordEl = document.getElementById("tuner-word");
+var tunerCapEl = document.getElementById("tuner-cap");
+var btnMicToggle = document.getElementById("btn-mic-toggle");
+var listenLabelEl = document.getElementById("listen-label");
+var listenCapEl = document.getElementById("listen-cap");
 
 function render() {
   app.classList.toggle("is-tapping", !!state.tapping);
@@ -842,7 +1222,7 @@ function render() {
   iconStop.hidden = !state.isPlaying;
   toggleLabel.textContent = state.isPlaying ? T.stop : T.start;
 
-  btnSettings.setAttribute("aria-expanded", state.settingsOpen ? "true" : "false");
+  btnSettingsEls.forEach(function (btn) { btn.setAttribute("aria-expanded", state.settingsOpen ? "true" : "false"); });
   app.classList.toggle("sheet-open", !!state.settingsOpen);
   sheet.setAttribute("aria-hidden", state.settingsOpen ? "false" : "true");
 
@@ -873,6 +1253,84 @@ function render() {
   Array.prototype.forEach.call(segTheme.children, function (btn, i) {
     btn.setAttribute("aria-pressed", THEMES[i] === themeId ? "true" : "false");
   });
+
+  mtInner.hidden = state.mode === "tuner";
+  tnInner.hidden = state.mode !== "tuner";
+  segModeEls.forEach(function (seg) {
+    Array.prototype.forEach.call(seg.children, function (btn) {
+      btn.setAttribute("aria-pressed", btn.getAttribute("data-mode") === state.mode ? "true" : "false");
+    });
+  });
+}
+
+function renderTuner() {
+  var det = tunerState === "detect";
+  var cents = Math.max(-50, Math.min(50, tunerCents));
+  var inTune = det && Math.abs(cents) <= 5;
+  var fullName = NOTE_NAMES[((tunerMidi % 12) + 12) % 12];
+  var letter = fullName.charAt(0);
+  var isSharp = fullName.length > 1;
+  var octave = Math.floor(tunerMidi / 12) - 1;
+
+  tunerNoteEl.classList.toggle("is-empty", !det);
+  tunerNoteEl.classList.toggle("in-tune", inTune);
+  tunerNoteEmptyEl.hidden = det;
+  tunerNoteContentEl.hidden = !det;
+  if (det) {
+    tunerNoteLetterEl.textContent = letter;
+    tunerNoteAccEl.hidden = !isSharp;
+    tunerNoteOctEl.textContent = octave;
+  }
+  var noteLabel = det ? (letter + (isSharp ? "♯" : "") + octave) : T.tunerNoNote;
+  tunerNoteEl.setAttribute("aria-label", noteLabel);
+  /* Only push into the shared announcer when the note identity changes, not on every
+     cents refinement of the same held note — a continuous aria-live region here would
+     re-announce up to ~16 times/second while a note is held (see DECISIONS.md). */
+  var identity = det ? tunerMidi : null;
+  if (identity !== tunerLastAnnouncedMidi) {
+    tunerLastAnnouncedMidi = identity;
+    if (det && state.mode === "tuner") announcer.textContent = noteLabel;
+  }
+
+  tunerCentsEl.classList.toggle("at-rest", !det);
+  tunerCentsEl.classList.toggle("in-tune", inTune);
+  tunerCentsEl.style.setProperty("--c", cents + "%");
+  tunerCentsEl.style.setProperty("--fl", (cents < 0 ? 50 + cents : 50) + "%");
+  tunerCentsEl.style.setProperty("--fw", Math.abs(cents) + "%");
+  tunerCentsEl.setAttribute("aria-valuenow", det ? cents : 0);
+
+  tunerMsgEl.hidden = det;
+  tunerReadingEl.hidden = !det;
+  if (det) {
+    var sign = cents > 0 ? "+" : cents < 0 ? "−" : "±";
+    tunerNumEl.textContent = sign + Math.abs(cents) + " ¢";
+    tunerWordEl.textContent = "· " + (inTune ? T.tunerInTune : cents < 0 ? T.tunerFlat : T.tunerSharp);
+    tunerReadingEl.classList.toggle("in-tune", inTune);
+  } else {
+    tunerMsgIconEl.hidden = !(tunerState === "pending" || tunerState === "denied");
+    tunerMsgIconSlashEl.hidden = tunerState !== "denied";
+    tunerMsgTextEl.textContent = tunerState === "pending" ? T.tunerMicPending
+      : tunerState === "denied" ? T.tunerMicDenied
+      : tunerState === "listening" ? T.tunerListening
+      : (MIC_SUPPORTED ? T.tunerStatusIdle : T.tunerStatusIdleNoMic);
+  }
+  tunerCapEl.textContent = det
+    ? tunerFreq.toFixed(1).replace(".", T.decimalSeparator) + " Hz"
+    : T.tunerRefPitchCap;
+
+  var active = tunerState === "listening" || det;
+  btnMicToggle.classList.toggle("is-active", active);
+  btnMicToggle.setAttribute("aria-pressed", active ? "true" : "false");
+  btnMicToggle.setAttribute("aria-busy", tunerState === "pending" ? "true" : "false");
+  listenLabelEl.textContent = active ? T.stop : T.tunerListenLabel;
+  listenCapEl.textContent = active ? T.tunerCapListening
+    : tunerState === "pending" ? T.tunerCapPending
+    : tunerState === "denied" ? T.tunerCapDenied
+    : T.tunerCapIdle;
+
+  Array.prototype.forEach.call(toneGrid.children, function (btn, i) {
+    btn.setAttribute("aria-pressed", i === toneActiveIndex ? "true" : "false");
+  });
 }
 
 /* ===== Events ===== */
@@ -884,7 +1342,7 @@ btnMinus1.addEventListener("click", function () { setBpm(state.bpm - 1); });
 btnPlus1.addEventListener("click", function () { setBpm(state.bpm + 1); });
 btnPlus5.addEventListener("click", function () { setBpm(state.bpm + 5); });
 
-btnSettings.addEventListener("click", openSettings);
+btnSettingsEls.forEach(function (btn) { btn.addEventListener("click", openSettings); });
 document.getElementById("btn-close-settings").addEventListener("click", closeSettings);
 document.getElementById("btn-scrim").addEventListener("click", closeSettings);
 document.getElementById("btn-close-hint").addEventListener("click", function () { state.hintDismissed = true; render(); });
@@ -903,6 +1361,7 @@ document.addEventListener("keydown", function (e) {
   var tag = e.target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA") return;
   if (e.code === "Escape") { if (state.settingsOpen) closeSettings(); return; }
+  if (state.mode === "tuner") return;
   if (e.code === "Space") { e.preventDefault(); toggle(); return; }
   if (e.code === "ArrowUp") { e.preventDefault(); setBpm(state.bpm + 1); return; }
   if (e.code === "ArrowDown") { e.preventDefault(); setBpm(state.bpm - 1); return; }
@@ -938,7 +1397,9 @@ translateStaticMarkup();
 applyTheme();
 applyReducedMotion();
 buildLeds();
+document.getElementById("btn-mic-toggle").hidden = !MIC_SUPPORTED;
 render();
+renderTuner();
 </script>
 </body>
 </html>

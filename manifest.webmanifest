@@ -1,6 +1,6 @@
 {
-  "name": "Metronome",
-  "short_name": "Metronome",
+  "name": "Tickr",
+  "short_name": "Tickr",
   "description": "A minimalist metronome — no install needed, works offline.",
   "start_url": "./",
   "scope": "./",

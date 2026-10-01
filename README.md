@@ -1,6 +1,6 @@
-# Metronome
+# Tickr
 
-A minimal metronome PWA. No install required, no tracking, works offline after the first load.
+A minimal metronome + tuner PWA. No install required, no tracking, works offline after the first load.
 
 ## Features
 
@@ -12,6 +12,7 @@ A minimal metronome PWA. No install required, no tracking, works offline after t
 - Dark/light theme following `prefers-color-scheme`, with `prefers-reduced-motion` support.
 - PL/EN based on system language.
 - Works as an offline PWA (service worker, manifest, icon).
+- **Tuner mode** (segmented control in the header, designed in the same Claude Design canvas as the metronome): a reference tone generator (four quick-access notes, expandable to two full chromatic octaves, no microphone needed) plus microphone-based pitch detection with a note+accidental+octave readout, a cents-deviation meter, and the live frequency in Hz.
 
 ## Stack and architecture decisions
 
@@ -23,6 +24,8 @@ Plain HTML/CSS/JS — a single `index.html` file (inline CSS and JS), no bundler
 - **iOS Safari**: `AudioContext` can only resume inside a user gesture; the physical mute switch blocks Web Audio (there's no API to detect that state) — hence the in-UI hint. `navigator.vibrate` isn't supported by WebKit (Apple removed it in 2017), so the vibration toggle is disabled on iOS.
 - **Wake Lock**: feature-detected, the request is wrapped in `try/catch` and re-acquired when the tab becomes visible again (the browser releases the lock automatically when a tab loses visibility).
 - **Layout**: a single grid, with portrait/landscape/desktop breakpoints handled entirely by CSS container queries (not media queries) — the same file behaves identically in a desktop window and on a phone.
+- **Tuner — pitch detection**: an autocorrelation algorithm with parabolic interpolation (not `AudioWorklet`) over an `AnalyserNode` buffer, polled from its own `requestAnimationFrame` loop (throttled to ~60ms — the analysis itself, not just the repaint), kept completely separate from the metronome's scheduler and LED-draw loop — ported from the same Claude Design prototype as the UI (narrows the buffer to the region between the first near-zero crossing from each end before correlating, across the window's full range rather than a fixed Hz band; skips the initial downslope before hunting for the correlation peak; exponentially smooths the cents reading — not the raw frequency — while the same note stays held). `getUserMedia` is requested with `echoCancellation`/`noiseSuppression`/`autoGainControl` all disabled — those are tuned for voice calls and distort the waveform a pitch detector needs. Mic access is lazy (only on entering Tuner mode), guarded against a permission prompt resolving after the user has already left Tuner mode, and released (`track.stop()`) on leaving it. Status announcements to screen readers are throttled to note-identity changes, not every small cents correction. See `TUNER-PLAN.md` and `DECISIONS.md` in the project's Obsidian vault (not part of this repo) for the full algorithm comparison and design provenance.
+- **Tuner — tone generator**: reuses the same `OscillatorNode`/`GainNode` pattern as the metronome's sounds, just with a sustained tone (linear ramp in/out) instead of a short click — no new audio primitives, no microphone or permission required.
 
 ## Running locally
 
@@ -92,6 +95,7 @@ There are no dependencies to update — the project has no `package.json`/`node_
 - Vibration is unavailable on iOS (Safari/WebKit doesn't support `navigator.vibrate`).
 - Wake Lock in an installed (`standalone`) PWA on older iOS may fail on WebKit's side — handled gracefully (`try/catch`, the screen may simply turn off), it doesn't block the metronome from running.
 - There's no programmatic way to detect the iPhone's physical mute switch — hence the in-UI hint while playing.
+- **Microphone permission in an installed (`standalone`) PWA on iOS doesn't persist across relaunches** — Safari remembers the app-level grant but not the page-level one, so the "Listen" prompt can reappear each time the installed app is reopened, even after the user already allowed it once. This is a WebKit limitation, not something the app can fix; the tone generator half of Tuner mode is unaffected, since it needs no microphone access at all.
 
 ## Changelog
 

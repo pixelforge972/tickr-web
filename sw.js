@@ -1,4 +1,4 @@
-const VERSION = "0.1.0";
+const VERSION = "0.2.1";
 const CACHE_NAME = `metronome-${VERSION}`;
 const PRECACHE_URLS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
