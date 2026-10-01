@@ -1,7 +1,7 @@
 {
-  "name": "Metronom",
-  "short_name": "Metronom",
-  "description": "Minimalistyczny metronom — bez instalacji, działa offline.",
+  "name": "Metronome",
+  "short_name": "Metronome",
+  "description": "A minimalist metronome — no install needed, works offline.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

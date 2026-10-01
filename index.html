@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0E0F10">
-<meta name="description" content="Minimalistyczny metronom — bez instalacji, działa offline.">
+<meta name="description" id="meta-description" content="A minimalist metronome — no install needed, works offline.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icon.svg">
-<title>Metronom</title>
+<title>Metronome</title>
 <style>
 html,body{margin:0;background:#0E0F10}
 body{margin:0}
@@ -132,17 +132,13 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 .switch-row{display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; min-height:64px; padding:10px 14px 10px 16px;
   border-radius:var(--r-md); text-align:left}
 .switch-row:active,.switch-row.is-pressed{transform:none}
-.switch-row:disabled,.switch-row.is-disabled{background:var(--surface-2); box-shadow:none; color:var(--text)}
 .sw-text{display:flex; flex-direction:column; gap:3px; min-width:0}
 .sw-title{font-size:16px; font-weight:600}
-.sw-cap{font-size:13px; line-height:1.35; color:var(--text-2); display:flex; gap:6px; align-items:flex-start}
-.sw-cap svg{flex:none; margin-top:1px}
+.sw-cap{font-size:13px; line-height:1.35; color:var(--text-2)}
 .switch{flex:none; position:relative; width:52px; height:32px; border-radius:16px; background:var(--surface); box-shadow:inset 0 0 0 2px var(--led-ring); transition:background-color 160ms}
 .knob{position:absolute; top:4px; left:4px; width:24px; height:24px; border-radius:50%; background:var(--text-2); transition:transform 160ms, background-color 160ms}
 .switch-row[aria-checked="true"] .switch{background:var(--accent); box-shadow:none}
 .switch-row[aria-checked="true"] .knob{transform:translateX(20px); background:var(--on-accent)}
-.switch-row:disabled .switch,.switch-row.is-disabled .switch{opacity:.4}
-.switch-row:disabled .sw-title,.switch-row.is-disabled .sw-title{color:var(--text-2)}
 
 /* ===== Mute hint ===== */
 .hint{position:absolute; top:0; left:0; right:0; margin:0 auto; width:max-content; max-width:100%; z-index:2; display:flex; align-items:center; gap:10px;
@@ -212,18 +208,18 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 <div class="tk mt theme-dark" id="app">
 <div class="mt-inner">
 <header class="top">
-<span class="brand" data-i18n="brand">Metronom</span>
-<button class="btn icon-btn" type="button" id="btn-settings" data-i18n-aria="settingsLabel" aria-label="Ustawienia" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="10" cy="17" r="2.5"></circle></svg></button>
+<span class="brand" data-i18n="brand">Metronome</span>
+<button class="btn icon-btn" type="button" id="btn-settings" data-i18n-aria="settingsLabel" aria-label="Settings" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h3M13 17h7"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="10" cy="17" r="2.5"></circle></svg></button>
 </header>
-<section class="rhythm" aria-label="Rytm">
-<div class="seg seg-meter" id="seg-meter" role="group" data-i18n-aria="meterLabel" aria-label="Metrum"></div>
-<div class="seg seg-sub" id="seg-sub" role="group" data-i18n-aria="subdivLabel" aria-label="Podział"></div>
+<section class="rhythm" data-i18n-aria="rhythmSectionLabel" aria-label="Rhythm">
+<div class="seg seg-meter" id="seg-meter" role="group" data-i18n-aria="meterLabel" aria-label="Meter"></div>
+<div class="seg seg-sub" id="seg-sub" role="group" data-i18n-aria="subdivLabel" aria-label="Subdivision"></div>
 </section>
-<section class="display" id="display" aria-label="Tempo i beat">
+<section class="display" id="display" data-i18n-aria="displaySectionLabel" aria-label="Tempo and beat">
 <div class="hint" id="hint" role="status" hidden>
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
-<span data-i18n="muteHintText">Nie słychać? Sprawdź, czy iPhone nie jest wyciszony.</span>
-<button class="btn icon-btn" type="button" id="btn-close-hint" data-i18n-aria="closeHint" aria-label="Zamknij wskazówkę"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+<span data-i18n="muteHintText">Can't hear it? Check if your iPhone's ringer switch is muted.</span>
+<button class="btn icon-btn" type="button" id="btn-close-hint" data-i18n-aria="closeHint" aria-label="Dismiss hint"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
 </div>
 <div class="leds" id="leds" aria-hidden="true"></div>
 <div class="readout">
@@ -232,20 +228,20 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 <span class="tempo-name" id="tempo-name">Moderato</span>
 </div>
 </section>
-<section class="tempo" aria-label="Zmiana tempa">
-<label class="sr-only" for="bpm-main" data-i18n="bpmSliderLabel">Tempo w BPM</label>
+<section class="tempo" data-i18n-aria="tempoSectionLabel" aria-label="Change tempo">
+<label class="sr-only" for="bpm-main" data-i18n="bpmSliderLabel">Tempo in BPM</label>
 <input id="bpm-main" class="range" type="range" min="30" max="240" step="1" value="120">
 <div class="steps">
-<button class="btn btn-step" type="button" id="btn-minus5" data-i18n-aria="stepMinus5" aria-label="Wolniej o 5">−5</button>
-<button class="btn btn-step" type="button" id="btn-minus1" data-i18n-aria="stepMinus1" aria-label="Wolniej o 1">−1</button>
-<button class="btn btn-step" type="button" id="btn-plus1" data-i18n-aria="stepPlus1" aria-label="Szybciej o 1">+1</button>
-<button class="btn btn-step" type="button" id="btn-plus5" data-i18n-aria="stepPlus5" aria-label="Szybciej o 5">+5</button>
+<button class="btn btn-step" type="button" id="btn-minus5" data-i18n-aria="stepMinus5" aria-label="5 slower">−5</button>
+<button class="btn btn-step" type="button" id="btn-minus1" data-i18n-aria="stepMinus1" aria-label="1 slower">−1</button>
+<button class="btn btn-step" type="button" id="btn-plus1" data-i18n-aria="stepPlus1" aria-label="1 faster">+1</button>
+<button class="btn btn-step" type="button" id="btn-plus5" data-i18n-aria="stepPlus5" aria-label="5 faster">+5</button>
 </div>
 </section>
 <section class="actions">
 <button class="btn btn-tap" type="button" id="btn-tap">
 <span class="tap-label" data-i18n="tapLabel">Tap</span>
-<span class="tap-cap" id="tap-cap" data-i18n="tapCaptionIdle">wystukaj tempo</span>
+<span class="tap-cap" id="tap-cap" data-i18n="tapCaptionIdle">tap tempo</span>
 </button>
 <button class="btn btn-primary" type="button" id="btn-toggle" aria-pressed="false">
 <svg id="icon-play" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"></path></svg>
@@ -254,41 +250,40 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 </button>
 </section>
 </div>
-<button class="scrim" type="button" id="btn-scrim" data-i18n-aria="closeSettings" aria-label="Zamknij ustawienia"></button>
-<aside class="sheet" id="sheet" aria-label="Ustawienia" aria-hidden="true">
+<button class="scrim" type="button" id="btn-scrim" data-i18n-aria="closeSettings" aria-label="Close settings"></button>
+<aside class="sheet" id="sheet" data-i18n-aria="settingsTitle" aria-label="Settings" aria-hidden="true">
 <div class="sheet-grip" aria-hidden="true"></div>
 <div class="sheet-head">
-<h2 class="sheet-title" data-i18n="settingsTitle">Ustawienia</h2>
-<button class="btn icon-btn" type="button" id="btn-close-settings" data-i18n-aria="closeSettings" aria-label="Zamknij ustawienia"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+<h2 class="sheet-title" data-i18n="settingsTitle">Settings</h2>
+<button class="btn icon-btn" type="button" id="btn-close-settings" data-i18n-aria="closeSettings" aria-label="Close settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
 </div>
 <div class="field">
-<div class="field-row"><label class="field-label" for="vol-main" data-i18n="volumeLabel">Głośność</label><span class="val" id="vol-val">80%</span></div>
+<div class="field-row"><label class="field-label" for="vol-main" data-i18n="volumeLabel">Volume</label><span class="val" id="vol-val">80%</span></div>
 <input id="vol-main" class="range" type="range" min="0" max="100" step="1" value="80">
 </div>
 <div class="field pad">
-<span class="field-label" id="snd-main" data-i18n="soundLabel">Brzmienie</span>
+<span class="field-label" id="snd-main" data-i18n="soundLabel">Sound</span>
 <div class="seg" id="seg-sound" role="group" aria-labelledby="snd-main"></div>
 </div>
 <div class="field">
-<div class="field-row"><label class="field-label" for="acc-main" data-i18n="accentVolumeLabel">Głośność akcentu</label><span class="val" id="acc-val">+40%</span></div>
+<div class="field-row"><label class="field-label" for="acc-main" data-i18n="accentVolumeLabel">Accent volume</label><span class="val" id="acc-val">+40%</span></div>
 <input id="acc-main" class="range" type="range" min="0" max="100" step="5" value="40">
 </div>
 <button class="btn switch-row" type="button" id="row-vibe" role="switch" aria-checked="false">
-<span class="sw-text"><span class="sw-title" data-i18n="vibrationLabel">Wibracje na beat</span>
-<span class="sw-cap" id="vibe-cap-ios" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg><span data-i18n="vibrationUnavailableIOS">Niedostępne na iPhonie: Safari nie obsługuje wibracji z poziomu strony.</span></span>
-<span class="sw-cap" id="vibe-cap-default" data-i18n="vibrationCaption">Krótki impuls na każdą miarę, mocniejszy na „raz”</span>
+<span class="sw-text"><span class="sw-title" data-i18n="vibrationLabel">Vibrate on beat</span>
+<span class="sw-cap" data-i18n="vibrationCaption">A short pulse on every beat, stronger on beat one</span>
 </span>
 <span class="switch" aria-hidden="true"><span class="knob"></span></span>
 </button>
 <button class="btn switch-row" type="button" id="row-wake" role="switch" aria-checked="true">
-<span class="sw-text"><span class="sw-title" data-i18n="wakeLockLabel">Ekran zawsze włączony</span><span class="sw-cap" data-i18n="wakeLockCaption">Ekran nie zgaśnie, dopóki metronom gra</span></span>
+<span class="sw-text"><span class="sw-title" data-i18n="wakeLockLabel">Keep screen on</span><span class="sw-cap" data-i18n="wakeLockCaption">The screen won't turn off while the metronome is running</span></span>
 <span class="switch" aria-hidden="true"><span class="knob"></span></span>
 </button>
 <div class="field pad">
-<span class="field-label" id="thm-main" data-i18n="themeLabel">Wygląd</span>
+<span class="field-label" id="thm-main" data-i18n="themeLabel">Appearance</span>
 <div class="seg" id="seg-theme" role="group" aria-labelledby="thm-main"></div>
 </div>
-<p class="sheet-version">Metronom 0.1.0</p>
+<p class="sheet-version" data-i18n="versionLabel">Metronome 0.1.0</p>
 </aside>
 <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
 </div>
@@ -298,16 +293,18 @@ a{color:#F5A524}a:hover{color:#FFC45E}
 /* ===== i18n ===== */
 var I18N = {
   pl: {
-    brand: "Metronom", settingsLabel: "Ustawienia", meterLabel: "Metrum", subdivLabel: "Podział",
+    brand: "Metronom", metaDescription: "Minimalistyczny metronom — bez instalacji, działa offline.",
+    settingsLabel: "Ustawienia", meterLabel: "Metrum", subdivLabel: "Podział",
     bpmUnit: "BPM", bpmSliderLabel: "Tempo w BPM", start: "Start", stop: "Stop", tapLabel: "Tap",
     tapCaptionIdle: "wystukaj tempo", settingsTitle: "Ustawienia", volumeLabel: "Głośność",
     soundLabel: "Brzmienie", accentVolumeLabel: "Głośność akcentu", vibrationLabel: "Wibracje na beat",
     vibrationCaption: "Krótki impuls na każdą miarę, mocniejszy na „raz”",
-    vibrationUnavailableIOS: "Niedostępne na iPhonie: Safari nie obsługuje wibracji z poziomu strony.",
     wakeLockLabel: "Ekran zawsze włączony", wakeLockCaption: "Ekran nie zgaśnie, dopóki metronom gra",
     muteHintText: "Nie słychać? Sprawdź, czy iPhone nie jest wyciszony.", closeHint: "Zamknij wskazówkę",
     closeSettings: "Zamknij ustawienia", stepMinus5: "Wolniej o 5", stepMinus1: "Wolniej o 1",
     stepPlus1: "Szybciej o 1", stepPlus5: "Szybciej o 5", themeLabel: "Wygląd",
+    rhythmSectionLabel: "Rytm", displaySectionLabel: "Tempo i beat", tempoSectionLabel: "Zmiana tempa",
+    versionLabel: "Metronom 0.1.0",
     soundNames: { click: "Klik", wood: "Drewno", hat: "Hi-hat" },
     themeNames: { auto: "Systemowy", light: "Jasny", dark: "Ciemny" },
     subdivNames: { "1": "Brak", "2": "Ósemki", "3": "Triole", "4": "Szesnastki" },
@@ -322,16 +319,18 @@ var I18N = {
     stoppedAnnouncement: "Metronom zatrzymany"
   },
   en: {
-    brand: "Metronome", settingsLabel: "Settings", meterLabel: "Meter", subdivLabel: "Subdivision",
+    brand: "Metronome", metaDescription: "A minimalist metronome — no install needed, works offline.",
+    settingsLabel: "Settings", meterLabel: "Meter", subdivLabel: "Subdivision",
     bpmUnit: "BPM", bpmSliderLabel: "Tempo in BPM", start: "Start", stop: "Stop", tapLabel: "Tap",
     tapCaptionIdle: "tap tempo", settingsTitle: "Settings", volumeLabel: "Volume",
     soundLabel: "Sound", accentVolumeLabel: "Accent volume", vibrationLabel: "Vibrate on beat",
     vibrationCaption: "A short pulse on every beat, stronger on beat one",
-    vibrationUnavailableIOS: "Unavailable on iPhone: Safari doesn't support vibration from the web.",
     wakeLockLabel: "Keep screen on", wakeLockCaption: "The screen won't turn off while the metronome is running",
     muteHintText: "Can't hear it? Check if your iPhone's ringer switch is muted.", closeHint: "Dismiss hint",
     closeSettings: "Close settings", stepMinus5: "5 slower", stepMinus1: "1 slower",
     stepPlus1: "1 faster", stepPlus5: "5 faster", themeLabel: "Appearance",
+    rhythmSectionLabel: "Rhythm", displaySectionLabel: "Tempo and beat", tempoSectionLabel: "Change tempo",
+    versionLabel: "Metronome 0.1.0",
     soundNames: { click: "Click", wood: "Wood", hat: "Hi-hat" },
     themeNames: { auto: "System", light: "Light", dark: "Dark" },
     subdivNames: { "1": "None", "2": "Eighths", "3": "Triplets", "4": "Sixteenths" },
@@ -857,10 +856,8 @@ function render() {
   accSlider.style.setProperty("--fill", state.accentVolume + "%");
   accVal.textContent = "+" + state.accentVolume + "%";
 
-  rowVibe.disabled = IS_IOS;
-  rowVibe.setAttribute("aria-checked", (!IS_IOS && state.vibrationEnabled) ? "true" : "false");
-  document.getElementById("vibe-cap-ios").hidden = !IS_IOS;
-  document.getElementById("vibe-cap-default").hidden = IS_IOS;
+  rowVibe.hidden = IS_IOS;
+  rowVibe.setAttribute("aria-checked", state.vibrationEnabled ? "true" : "false");
   rowWake.setAttribute("aria-checked", state.wakeLockEnabled ? "true" : "false");
 
   Array.prototype.forEach.call(segMeter.children, function (btn, i) {
@@ -894,7 +891,7 @@ document.getElementById("btn-close-hint").addEventListener("click", function () 
 
 volSlider.addEventListener("input", function (e) { state.volume = Number(e.target.value); scheduleSave(); render(); });
 accSlider.addEventListener("input", function (e) { state.accentVolume = Number(e.target.value); scheduleSave(); render(); });
-rowVibe.addEventListener("click", function () { if (!IS_IOS) { state.vibrationEnabled = !state.vibrationEnabled; scheduleSave(); render(); } });
+rowVibe.addEventListener("click", function () { state.vibrationEnabled = !state.vibrationEnabled; scheduleSave(); render(); });
 rowWake.addEventListener("click", function () {
   state.wakeLockEnabled = !state.wakeLockEnabled;
   scheduleSave();
@@ -916,7 +913,9 @@ document.addEventListener("keydown", function (e) {
 
 /* ===== Translate static markup ===== */
 function translateStaticMarkup() {
-  if (LOCALE === "pl") return;
+  if (LOCALE === "en") return;
+  document.title = T.brand;
+  document.getElementById("meta-description").setAttribute("content", T.metaDescription);
   document.querySelectorAll("[data-i18n]").forEach(function (el) {
     var key = el.getAttribute("data-i18n");
     if (T[key] !== undefined) el.textContent = T[key];
